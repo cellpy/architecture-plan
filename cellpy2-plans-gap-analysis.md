@@ -131,6 +131,21 @@ example-data (`example_data.py` downloads), and the user-docs rewrite for change
 APIs are unplanned. Core solved its docs tooling (zensical-docs.md) — decide whether
 cellpy 2 follows. **Action: docs/CLI inventory pass; can trail everything else.**
 
+### G12 — Third-party extension API: loader plugins + exporter contract *(added 2026-07-09)*
+
+Surfaced by a hypothetical-demands review ("a user wants to contribute a loader and an
+exporter"). Two holes: **loader plugin discovery is a literal TODO**
+(`find_all_instruments`, data_structures.py:985 — "Searching for modules through
+plug-ins: Not implemented yet"), so today a third-party loader requires a PR into
+cellpy itself; and **no exporter contract exists anywhere** — `to_csv`/`to_excel` are
+`CellpyCell` methods, `exporters/` was the unscanned package (G5), and the BDF
+prototype sits in core's `scripts/bdf/` with placement parked. The fix is cheap if
+specified **before** the loader port hard-codes its configurations (Stage 3), and
+expensive after. **Action: done — `cellpy.loaders`/`cellpy.exporters` entry-point
+groups, registration-time validation, the plain-function exporter contract over native
+`Data`, contributor kit, and BDF-as-reference are now §2.4 + Step 7 of the
+[loader/extraction plan](cellpy2-loader-port-and-extraction-plan.md).**
+
 ---
 
 ## 2. Documented elsewhere, forgotten in our plans
@@ -251,6 +266,7 @@ plan's open questions.
 | G9+G8+F9 | Release, branching, benchmarks, merge order | [cellpy2-release-and-branching-plan.md](cellpy2-release-and-branching-plan.md) | ✅ plan written |
 | G7 | OtherPath decision | config plan §5b addendum | ✅ recorded |
 | G11 | Docs/CLI inventory | release plan §6 (trailing) | parked there |
+| G12 | Extension API: loader entry points + exporter contract | loader/extraction plan §2.4 + Step 7 | ✅ recorded (2026-07-09) |
 | F1 | SPEED-30 convergence note | unit plan §8 + native-headers plan D5 | ✅ both recorded |
 | F2, F3, F5 | Adopt enums / naming / engine gaps | loader + utils plans inherit | ✅ folded in |
 | F4 | IR-semantics switch decision | native-headers plan (Phase-3 oracle exception) | open decision, owner assigned |

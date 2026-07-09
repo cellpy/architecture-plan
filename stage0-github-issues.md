@@ -36,3 +36,11 @@ parallel (cheap, unblock decisions), then `#429–#433` + `#434`/`#436` in any o
 - Benchmark baselines committed **before** any refactor PR merges.
 - Value-parity comparator passes trivially against the current bridge.
 - The six #438 decisions recorded in their plan documents.
+
+## Status + yolo labels (updated 2026-07-09)
+
+`#428`–`#431` **closed** (done). Remaining open issues judged fit for issue-flow's
+hands-off **`yolo`** mode (well-specified, mechanical or pattern-following, low blast
+radius, oracle-guarded, no open maintainer decisions) and labeled accordingly:
+`#432` (already labeled by another agent), `#433`, `#434`, `#435`, `#436`, `#437`,
+`core#114`. **Not** yolo: `#438` (maintainer decisions) and the `#439` umbrella.

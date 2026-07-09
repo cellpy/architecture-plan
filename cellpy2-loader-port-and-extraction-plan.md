@@ -110,6 +110,44 @@ unspecified forever (headers report §5).
 - The utils that consume curves (easyplot, collectors, ica, plotutils) migrate in the
   [utils plan](cellpy2-utils-migration-plan.md) wave 2/3.
 
+### 2.4 Third-party extension API — loaders and exporters *(added 2026-07-09, gap G12)*
+
+Contributions from users must not require a PR into cellpy itself. Two halves,
+deliberately specified **before** Steps 3–5 hard-code the loader configurations:
+
+**Loader entry points.** Plugin discovery is literally a TODO today
+(`find_all_instruments`, data_structures.py:985: "Searching for modules through
+plug-ins: Not implemented yet"). Define it now, cellpy-side:
+
+- Entry-point group **`cellpy.loaders`**: a third-party package declares
+  `[project.entry-points."cellpy.loaders"] myinstrument = "mypkg.loader"`; the loading
+  framework discovers it lazily (first use, not import time — per the no-import-time-
+  side-effects rule) and registers it through the existing `InstrumentFactory`.
+- The §2.2 configuration schema is validated **at registration**, so a broken plugin
+  fails loudly with the package named, and `validate_raw_frame` strict mode applies to
+  plugin output exactly as to built-ins (no trust tier).
+- `local_instrument` (YAML, no code) remains the entry-level path for simple text
+  formats; the entry point is the path for real formats.
+- **Contributor kit**: one docs page ("write a loader" = vendor parse + declaration +
+  golden-fixture recipe from Step 0) and a cookiecutter template containing the
+  test scaffolding. cellpy-core stays consumer-agnostic — discovery is app-layer only.
+
+**Exporter contract.** There is no exporter framework, and none is needed — but the
+*contract* must be written down: an exporter is a plain function
+
+```python
+def export(data: Data, target, *, cell_meta=None, units=None, **options) -> None
+```
+
+over the native `Data` (spec'd polars frames via `Schema`, dict-shaped meta via
+`to_dict`, explicit unit specs) — no ABC tower, no registry requirement. Optionally,
+an entry-point group **`cellpy.exporters`** lets the CLI/batch tools *discover*
+third-party exporters, same lazy mechanics as loaders. The BDF exporter
+(`cellpy-core/scripts/bdf/`, placement parked in `bdf-io-placement.md`) is promoted to
+**reference implementation** once its home is decided; `CellpyCell.to_csv`/`to_excel`
+eventually become thin wrappers over exporters that follow the same contract
+(utils-plan territory, not this plan).
+
 ## 3. Migration steps
 
 | Step | Content | Depends on |
@@ -121,9 +159,12 @@ unspecified forever (headers report §5).
 | 4 | Tier-2 loaders; shared vendor semantics factored into family configs | 3 |
 | 5 | Tier-3 decisions: port `biologics_mpr` + `batmo_bdf`; **park** `ext_nda_reader` (already flagged non-prod; `local_fastnda` lib exists) unless users object; `local_instrument` gets the warn-only validation mode | 4 |
 | 6 | Delete legacy normalization from `base.py` (the `*_txt` rename path, index promotion); loaders now emit native-only | header-migration Phase 3 |
+| 7 | **Extension API (§2.4)**: `cellpy.loaders` entry-point discovery + registration-time validation; exporter contract doc + optional `cellpy.exporters` discovery; contributor kit (docs page + cookiecutter); BDF promoted to reference exporter | 1 (config schema); BDF placement decision (`bdf-io-placement.md`) |
 
 Each loader PR = configuration declarations + fixture + parity test; the framework
-changes land once (Steps 1–2).
+changes land once (Steps 1–2). Step 7's *contract* (entry-point group names, function
+signature) is written in Step 1's PR even if the discovery mechanics land later — the
+configurations must not bake in an assumption that all loaders live in-tree.
 
 ## 4. What this plan absorbs from the others
 
