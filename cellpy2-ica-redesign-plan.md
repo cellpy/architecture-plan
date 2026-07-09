@@ -180,10 +180,20 @@ def dqdv(source, cycles=None, direction="both", options=None,
     Returns the specced long frame: cycle, direction, voltage, dqdv.
     Frame .attrs carry units, options used, and per-cycle failure notes."""
 
+def dvdq(source, cycles=None, direction="both", options=None,
+         strict=False, **overrides) -> pd.DataFrame:
+    """Differential voltage analysis (DVA) — same sources and options.
+    Returns: cycle, direction, capacity, dvdq (voltage carried along).
+    NEW capability (§1.5): computed as dV/dq on the smoothed V(q)
+    representation the pipeline already builds — no q(V) inversion step,
+    so it is numerically *simpler* than dQ/dV."""
+
 def to_wide(ica_frame) -> pd.DataFrame          # explicit wide conversion
-def transform_half_cycle(voltage, capacity, options) -> HalfCycleResult
+def transform_half_cycle(voltage, capacity, options,
+                         derivative="dqdv") -> HalfCycleResult
                                                  # the pure core (public: it IS
-                                                 #   dqdv_np's use case)
+                                                 #   dqdv_np's use case);
+                                                 #   derivative="dqdv" | "dvdq"
 ```
 
 - `direction="charge" | "discharge" | "both"` replaces `split=True` (the
@@ -201,8 +211,14 @@ def transform_half_cycle(voltage, capacity, options) -> HalfCycleResult
   combined path — closing the §1.2 asymmetry.
 - The scipy import is fixed (`scipy.ndimage`), the savgol window helper is
   extracted, dev `_check_*` functions move to tests/notebooks.
+- Normalization semantics differ per derivative: `normalize="area"` is an
+  ICA concept; for `dvdq` the default is `normalize=False` (DVA is
+  conventionally plotted raw, with peak *positions* on the capacity axis
+  carrying the information). Options validation rejects meaningless
+  combinations instead of silently applying them.
 
-Estimated size: **~450–550 lines** (from 1 124), most of it the ported math.
+Estimated size: **~500–600 lines** (from 1 124), most of it the ported
+math; dV/dQ itself adds only ~30 lines to the core.
 
 ---
 
@@ -222,10 +238,13 @@ capturing today's silent-empty behavior (to be flipped in Phase 1).
 collection. Old entry points re-implemented on the core; golden tests must
 match (except the documented silent-empty → warned-failure change).
 
-**Phase 2 — the new `dqdv` + spec (1 day).** Input polymorphism, specced
-frame with `.attrs`, `to_wide`, direction handling on the single data
-path. Old functions become deprecation shims. Docs: one options table
-replaces the three copy-pasted kwargs blocks.
+**Phase 2 — the new `dqdv` + `dvdq` + spec (1–1.5 days).** Input
+polymorphism, specced frames with `.attrs`, `to_wide`, direction handling
+on the single data path; `dvdq` lands here as the pure core's second
+derivative mode, validated against instrument-exported `dv_dq` raw columns
+where available (Arbin SQL test data) as a sanity reference. Old functions
+become deprecation shims. Docs: one options table replaces the three
+copy-pasted kwargs blocks.
 
 **Phase 3 — consumers (½–1 day).** `collect_ica` (collectors plan §3.2)
 and the plotting plan's `prepare/ica.py` consume the specced frame;
@@ -237,7 +256,8 @@ rework; tests ported off the shims.
 `collect_capacity_curves` in the readers package deprecated in favor of
 the curves contract.
 
-Total: **~3–4 days**, consistent with the utils plan's wave-3 budget.
+Total: **~3.5–4.5 days**, consistent with the utils plan's wave-3 budget
+(the extra half day is the new dV/dQ capability, not overhead).
 
 ---
 
@@ -263,7 +283,10 @@ Total: **~3–4 days**, consistent with the utils plan's wave-3 budget.
 3. **Normalization to nominal capacity** (the twice-repeated TODO):
    promote to `normalize="nom_cap"` in this rework (small: factor plumbing
    already exists via `normalizing_roof`), or defer?
-4. `dqdv` output for full cells (the module-header TODO): in scope for the
-   port, or a separate feature after cellpy 2.0?
+4. `dqdv`/`dvdq` for full cells (the module-header TODO): in scope for the
+   port, or a separate feature after cellpy 2.0? Note that `dvdq` makes
+   this more pressing — electrode balancing from full-cell DVA (fitting
+   half-cell reference curves) is the classic application, and would be a
+   natural later extension on top of the specced frame.
 5. Should `transform_half_cycle` be public API (recommended: it is the
    honest replacement for `dqdv_np` power users), or private?

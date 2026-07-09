@@ -26,7 +26,7 @@ surfaces for util and loader developers.
 | [cellpy2-batch-redesign-plan.md](cellpy2-batch-redesign-plan.md) | Batch v3 architecture (journal/policy/runner/result/store) and the migration off farm/barn `batch_tools` |
 | [cellpy2-plotting-redesign-plan.md](cellpy2-plotting-redesign-plan.md) | One plotting home (prepare→spec→render, figure registry); collectors re-based on it; batch_plotters/easyplot retired |
 | [cellpy2-collectors-redesign-plan.md](cellpy2-collectors-redesign-plan.md) | Collection layer: `Collection` with provenance, options dataclasses replacing "elevated arguments", `concat_summaries` consolidation |
-| [cellpy2-ica-redesign-plan.md](cellpy2-ica-redesign-plan.md) | ICA: one `dqdv()` entry point, `IcaOptions`, specced output frame (`cycle, direction, voltage, dqdv`), pure transform core |
+| [cellpy2-ica-redesign-plan.md](cellpy2-ica-redesign-plan.md) | ICA + DVA: `dqdv()` and new `dvdq()` on one pure core, `IcaOptions`, specced long-format output frames |
 | [cellpy2-conventions-plan.md](cellpy2-conventions-plan.md) | Exceptions, logging, deprecation cadence (`warn_once`, `DEPRECATIONS.md`) |
 | [cellpy2-release-and-branching-plan.md](cellpy2-release-and-branching-plan.md) | 2.0 support matrix, trunk-based flip, cross-repo merge order, benchmarks |
 | [cellpy2-plans-gap-analysis.md](cellpy2-plans-gap-analysis.md) | The cross-read that produced the set; ownership table in its §3 |

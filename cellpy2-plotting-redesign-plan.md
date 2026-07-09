@@ -314,8 +314,10 @@ deleted. No figure changes; golden set must be byte-stable for plotly JSON.
 
 ### Phase 3 — the other families (3–4 days)
 
-`cycles_plot`, `raw_plot`, `cycle_info_plot`, plus an `ica_plot` family
-(new, cheap on this architecture) ported to prepare/spec/render. The
+`cycles_plot`, `raw_plot`, `cycle_info_plot`, plus `ica_plot` and
+`dva_plot` families (new, cheap on this architecture; data contracts from
+the [ica redesign plan](cellpy2-ica-redesign-plan.md) — dQ/dV vs voltage
+and dV/dQ vs capacity) ported to prepare/spec/render. The
 curve-family preparation absorbs collectors' `cycles_collector` reshaping
 and targets `cellpycore.curves` output directly. Backend parity per family
 via the golden set.
