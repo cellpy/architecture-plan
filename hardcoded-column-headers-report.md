@@ -226,3 +226,50 @@ postfix and has no attribute equivalent — that is the legitimate use of string
 5. Optional/stylistic: convert plain string-keyed headers lookups (§6) to attribute
    access; keep string keys only for postfix composition.
 6. Delete the dead block in `easyplot.py:721–739`.
+
+---
+
+## 9. Addendum: `filters/` / `exporters/` / `internals/` (2026-07-10)
+
+**Scope:** `cellpy/cellpy/filters/`, `cellpy/cellpy/exporters/`, `cellpy/cellpy/internals/`.
+**Method:** AST scan for canonical header string literals in column-access contexts
+(same rules as §1). Tool: `.issueflows/00-tools/scan_hardcoded_headers.py`.
+
+### 9.1 Summary
+
+| Package | Verdict | Count |
+|---|---|---|
+| `filters/cycles.py` | **Clean** | 0 — default cycle column via `get_headers_normal()`. |
+| `filters/summary.py` | **Fix** | 2 — default `rate_columns` tuple. |
+| `exporters/bdf.py` (production) | **Clean** | 0 — column names resolved via `headers_normal` + `_COLUMN_MAP`. |
+| `exporters/bdf.py` (`__main__` debug) | **Low priority** | 2 — hard-coded raw names in local check script. |
+| `internals/` | **Clean** | 0 |
+
+### 9.2 `filters/summary.py`
+
+| Line | Code | Table | Replace with |
+|---|---|---|---|
+| 148 | `rate_columns=("charge_c_rate", "discharge_c_rate")` | summary | `get_headers_summary().charge_c_rate`, `.discharge_c_rate` (or defer to caller after native-headers flip) |
+
+Call sites may override `rate_columns`; the default is the only baked-in literal.
+
+### 9.3 `exporters/bdf.py`
+
+**Production path (`_build_bdf_frame`):** uses `getattr(headers, spec.cellpy_field)` and
+`raw[src_col]` — no hard-coded column strings in the export pipeline.
+
+**`if __name__ == "__main__"` block (lines 622–646):** debug-only literals
+`c_cha, c_dch = 'charge_capacity', 'discharge_capacity'` for ad-hoc file comparison.
+Same class as instrument-loader debug plots — fix when touching the block, or delete when
+the manual test script is removed.
+
+### 9.4 `internals/`
+
+No findings. Path helpers do not touch cellpy table schemas.
+
+### 9.5 Suggested priority (addendum)
+
+1. **`filters/summary.py` default `rate_columns`** — one-line fix alongside wave-1 filters
+   port (native `HeadersSummary` defaults).
+2. **BDF `__main__` literals** — optional / debug-only.
+

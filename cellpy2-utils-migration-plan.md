@@ -46,8 +46,8 @@ flip), and the [loader/extraction plan](cellpy2-loader-port-and-extraction-plan.
 | `utils/diagnostics.py` | Port (small, wave 1) | |
 | `utils/live.py` + `utils/processor.py` | **Rebuild on core incremental summarization** (wave 4, G10) | Core ROADMAP marks incremental engine DONE; these two become the consumer. If nobody claims the use case, delete deliberately instead of shipping rotten |
 | `utils/example_data.py` | Keep | Regenerate hosted files as v9 once the format lands |
-| `filters/cycles.py`, `filters/summary.py` | **Port** (wave 1, G5) | Mask-based selection → polars boolean expressions (index report §2.12); align with the engine's `mask` column semantics instead of ad-hoc masks |
-| `exporters/*` | **Inventory then port/park** (wave 0 scan, G5) | Never scanned by any report; extend the usage/hardcoded scans here first |
+| `filters/cycles.py`, `filters/summary.py` | **Port** (wave 1, G5) | Mask-based selection → polars boolean expressions (index report §2.12). `cycles.py` already uses `get_headers_normal()`; `summary.py` default `rate_columns` should move to `HeadersSummary` (headers addendum §9.2). |
+| `exporters/bdf.py` | **Port** (wave 1, G5) | Sole exporter today. Depends on `cell.data.raw`, `data.raw_units`, `headers_normal`, `cell_name`, and `filter_cycles`. `_COLUMN_MAP` is already header-attribute-based; pint conversion from `raw_units`. See usage addendum §9.3. |
 | `utils/batch_tools/sqlite_from_excel_db.py`, db readers | Port with batch (wave 1) | Journal/db feed the metadata resolver (metadata plan Step 6) |
 
 ## 3. Waves
@@ -55,6 +55,8 @@ flip), and the [loader/extraction plan](cellpy2-loader-port-and-extraction-plan.
 **Wave 0 — close the scanning blind spot (G5).** Re-run the usage + hardcoded-header
 scans over `filters/`, `exporters/`, `internals/` consumers; append findings to the
 two reports. Half a day; prevents surprises in every later wave.
+**Done (2026-07-10, issue #435):** addenda in the usage and hardcoded-headers reports;
+`triage` rows updated for `exporters/bdf.py` and `filters/*`.
 
 **Wave 1 — batch, helpers, filters, diagnostics** (right after native-headers
 Phase 3/4). Mostly mechanical: journal keys-to-columns, native summary names,
