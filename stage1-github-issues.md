@@ -51,7 +51,7 @@ Stage 0 record: [stage0-github-issues.md](stage0-github-issues.md) (tracking
 | [#457](https://github.com/jepegit/cellpy/issues/457) | Phase A de-indexing (raw/summary/journal) + warn-only index lint | [polars plan](cellpy2-polars-port-execution-plan.md) Phase A/D |
 | [#456](https://github.com/jepegit/cellpy/issues/456) | Conventions machinery implementation (deprecation helper, exception tree) | [conventions plan](cellpy2-conventions-plan.md) |
 | [core#117](https://github.com/cellpy/cellpy-core/issues/117) | Legacy⇄core metadata field mapping + G9/`volume` decisions | [metadata plan](cellpy2-metadata-handling-plan.md) Step 1 |
-| [core#118](https://github.com/cellpy/cellpy-core/issues/118) | `cellpycore.curves` — spec'd extraction layer (gated on #438 decision 2) | [loader/extraction plan](cellpy2-loader-port-and-extraction-plan.md) §2.3 |
+| [core#118](https://github.com/cellpy/cellpy-core/issues/118) | `cellpycore.curves` — spec'd extraction layer (#438 decision 2 recorded 2026-07-10) | [loader/extraction plan](cellpy2-loader-port-and-extraction-plan.md) §2.3 |
 
 ## Sequencing constraints
 

@@ -93,11 +93,12 @@ declaration fails at import of the configuration, not mid-load.
 
 ### 2.3 The extraction layer (G4 decision)
 
-**Decision proposed: a `cellpycore.curves` module.** `get_cap` / `get_ccap` /
-`get_dcap` / `get_ocv` / `collect_capacity_curves` are pure frame computations over
-raw+steps — exactly what core exists for; keeping them in cellpy 2 would leave the
-most-used data API on the wrong side of the seam and the curve-frame schema
-unspecified forever (headers report §5).
+### Decision (2026-07-10, issue #438) — curve-schema home
+
+**`cellpycore.curves` + spec-first `CurveCols`** (`docs/data_format_specifications/curve_table.md`).
+`get_cap` / `get_ccap` / `get_dcap` / `get_ocv` / `collect_capacity_curves` are pure frame
+computations over raw+steps in core; cellpy 2 `CellpyCell.get_cap(...)` is a thin wrapper
+(units/labels at the app layer). Gates [cellpy-core#118](https://github.com/cellpy/cellpy-core/issues/118).
 
 - **Spec first**: `docs/data_format_specifications/curve_table.md` + a `CurveCols`
   class (`cycle_num`, `capacity`, `potential`, `direction`, optionally `test_id`,
@@ -196,7 +197,7 @@ configurations must not bake in an assumption that all loaders live in-tree.
 | Risk | Mitigation |
 |---|---|
 | Wrong reset-granularity declaration silently corrupts capacities | The §5 property test per loader; declarations reviewed against vendor docs |
-| Timezone semantics per vendor (Arbin local vs Neware device-time) | Per-loader `tz` declaration, defaulting to the shared naive-datetime rule; recorded on `TestMeta.time_zone` |
+| Timezone semantics per vendor (Arbin local vs Neware device-time) | Per-loader `tz` declaration, defaulting to **naive = local + warn** (issue #438); recorded on `TestMeta.time_zone` |
 | ODBC/Access dependency for `arbin_res` on CI | Keep the committed harmonized fixture as oracle (the core testdata approach — F8); loader test runs where the driver exists, fixture parity everywhere |
 | Curves port drifts from legacy behavior in interpolation corner cases | Parity fixtures over multiple modes; document intentional differences (there are known quirks in forth-and-forth) |
 | Three plans' loader changes colliding | This plan **is** the merge point; unit/metadata plans reference it instead of scheduling their own loader passes |

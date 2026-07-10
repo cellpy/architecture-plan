@@ -24,8 +24,8 @@ Ordered roughly by how much they block a cellpy 2 release.
 The [usage report](data-and-cellpycell-usage-in-cellpy-utils.md) inventoried *what*
 utils consume, but no plan says *what happens to them* in cellpy 2. This is the
 largest user surface (batch, collectors, plotutils, helpers, easyplot, ocv_rlx, ica).
-Open per-module questions: port, rewrite, or deprecate (easyplot carries dead code and
-an old API); where scipy-based fitting (ocv_rlx, ica) lives; how collectors change
+Open per-module questions: port, rewrite, or deprecate (**easyplot decided:**
+deprecate v1.x / remove 2.0, issue #438); where scipy-based fitting (ocv_rlx, ica) lives; how collectors change
 when summaries are polars and natively richer (energies, powers, durations become
 available — today's plots can't show what legacy frames don't carry).
 **Action: write `cellpy2-utils-migration-plan.md`** keyed to the usage report's
@@ -188,6 +188,14 @@ Phase-3 oracle ("value parity on mapped columns" would *fail* on `ir_charge` if 
 corrected extractor is the default) — the switch must be an explicit, documented
 oracle exception. Same pattern applies to any other frozen bug the goldens encode.
 
+### Decision (2026-07-10, issue #438) — IR-semantics switch
+
+Cellpy 2 adopts the **corrected** IR extractor at the **native-headers flip (Phase 3)**.
+`ir_charge` / `ir_discharge` (and related summary IR columns) are on the value-parity
+**exception list** in `tests/parity.py` until goldens are updated or the shim documents
+the intentional divergence. No IR semantic change before the flip — Stage 0 oracles stay
+frozen.
+
 ### F5 — Engine gaps tracked in core that G2 will trip over
 
 - **Reset-granularity normalization** (issue #42): legacy loaders deliver per-step or
@@ -269,7 +277,7 @@ plan's open questions.
 | G12 | Extension API: loader entry points + exporter contract | loader/extraction plan §2.4 + Step 7 | ✅ recorded (2026-07-09) |
 | F1 | SPEED-30 convergence note | unit plan §8 + native-headers plan D5 | ✅ both recorded |
 | F2, F3, F5 | Adopt enums / naming / engine gaps | loader + utils plans inherit | ✅ folded in |
-| F4 | IR-semantics switch decision | native-headers plan (Phase-3 oracle exception) | open decision, owner assigned |
+| F4 | IR-semantics switch decision | native-headers plan (Phase-3 oracle exception) | ✅ decided (2026-07-10, issue #438) |
 | F6 | Feature-surface menu | utils plan §1.4 / wave 4 | ✅ folded in |
 | F7 | Doc-sync pass | cellpy-core chore | **still open — one hour, do it** |
 | F8 | Shared fixture convention | loader plan Step 0 + all test sections | ✅ adopted in new plans |

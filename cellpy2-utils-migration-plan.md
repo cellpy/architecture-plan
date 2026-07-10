@@ -30,7 +30,7 @@ flip), and the [loader/extraction plan](cellpy2-loader-port-and-extraction-plan.
 4. **Feature menu is explicit (F6).** For each module we decide which *new* engine
    capabilities it surfaces: native-only summary columns (energies, powers,
    durations, per-direction stats), `exclude_step_types` summaries (#54), test-level
-   summaries, corrected IR semantics (F4).
+   summaries, corrected IR semantics at the native-headers flip (F4, issue #438).
 
 ## 2. Module triage
 
@@ -42,7 +42,7 @@ flip), and the [loader/extraction plan](cellpy2-loader-port-and-extraction-plan.
 | `utils/collectors.py` | **Port** (wave 2) | Built on `cellpycore.curves`; its own wide/long reshaping goes polars; `BatchSummaryCollector` gains native-only columns as opt-in |
 | `utils/ica.py` | **Port** (wave 3) | dq/dv on top of `curves`; scipy stays app-side; spec the ICA output frame while at it |
 | `utils/ocv_rlx.py` | **Port, refactor** (wave 3) | Fitting stays app-side; rename the `self.data`-holds-a-CellpyCell attribute; steps access → native names |
-| `utils/easyplot.py` | **Deprecate in 2.0, remove in 2.1** | Old API layer over what plotutils/collectors do; contains dead code (easyplot.py:721–739). Decision needed with maintainer — if kept, it gets a rewrite, not a port |
+| `utils/easyplot.py` | **Deprecate in v1.x, remove in 2.0** | Old API layer over what plotutils/collectors do; contains dead code (easyplot.py:721–739). No port, no rewrite — module-level `DeprecationWarning` lands on the next v1.x minor; deleted at 2.0 |
 | `utils/diagnostics.py` | Port (small, wave 1) | |
 | `utils/live.py` + `utils/processor.py` | **Rebuild on core incremental summarization** (wave 4, G10) | Core ROADMAP marks incremental engine DONE; these two become the consumer. If nobody claims the use case, delete deliberately instead of shipping rotten |
 | `utils/example_data.py` | Keep | Regenerate hosted files as v9 once the format lands |
@@ -74,8 +74,13 @@ decisions that need new UI: test-level summaries in batch reports,
 
 ## 4. Deprecations introduced here
 
-- `easyplot` module-level `DeprecationWarning` (2.0) → removal (2.1), if the
-  deprecate verdict stands.
+### Decision (2026-07-10, issue #438) — easyplot fate
+
+**Deprecate in v1.x** (module-level `DeprecationWarning` on import, next 1.x minor on
+`master`); **remove in 2.0** (no port, no rewrite). Dead block at `easyplot.py:721–739`
+deleted during Stage 1 header cleanup (#455).
+
+- `easyplot` module-level `DeprecationWarning` (v1.x) → removal (2.0).
 - Legacy curve-frame column names (`"voltage"`, `"capacity"`, `"cycle"`) accepted by
   plotting helpers via the shim for one release.
 - `helpers.make_new_cell` (already warns) and any util re-exporting legacy headers.
@@ -97,7 +102,7 @@ decisions that need new UI: test-level summaries in batch reports,
 | Risk | Mitigation |
 |---|---|
 | Utils quietly depend on pandas idioms (index alignment) that survive review | Wave 0 lint rule from the polars plan (`.index` ban outside boundary modules) applies to utils too |
-| easyplot users surprised by deprecation | Decision explicitly with maintainer; if user base unknown, keep one release longer behind a warning |
+| easyplot users surprised by deprecation | **Decided (issue #438):** warn in v1.x, remove in 2.0; document migration to plotutils/collectors in release notes |
 | Batch journal Excel round-trips (index-labeled sheets) | Journal IO rewritten dict-shaped per metadata plan Step 4 / polars report §2.11 |
 | Wave 2 blocked on unit plan Phase 4 slipping | `units_label` is small; pull it forward into wave 1 if needed |
 

@@ -20,7 +20,7 @@ All issues carry the label **`cellpy2-stage0`**. Tracking issue:
 | [#435](https://github.com/jepegit/cellpy/issues/435) | Extend consumer scans to `filters/`, `exporters/`, `internals/` | utils wave 0 / gap G5 | [utils plan](cellpy2-utils-migration-plan.md) |
 | [#436](https://github.com/jepegit/cellpy/issues/436) | Benchmark harness + v1.x baselines | release plan §4 / gap G8 | [release plan](cellpy2-release-and-branching-plan.md) |
 | [#437](https://github.com/jepegit/cellpy/issues/437) | Conventions bootstrap: deprecation helper, exception tree, DEPRECATIONS registry | conventions plan §5 | [conventions plan](cellpy2-conventions-plan.md) |
-| [#438](https://github.com/jepegit/cellpy/issues/438) | Decision register (timezone, curve home, v9 container, IR semantics, easyplot, maintenance window) | gates Stage 1+ | multiple (listed in issue) |
+| [#438](https://github.com/jepegit/cellpy/issues/438) | Decision register (timezone, curve home, v9 container, IR semantics, easyplot, maintenance window) | gates Stage 1+ | multiple (listed in issue); **decisions recorded 2026-07-10** |
 | [core#114](https://github.com/cellpy/cellpy-core/issues/114) | Doc-sync pass over the cellpy-core guiding documents | gap F7 | [gap analysis](cellpy2-plans-gap-analysis.md) |
 
 ## Suggested order

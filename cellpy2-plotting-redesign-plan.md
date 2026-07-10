@@ -25,7 +25,7 @@ Four modules, ~12,800 lines, four overlapping generations:
 | `utils/plotutils.py` | 6 272 | Single-cell plots: `summary_plot` (new builder pipeline **and** its 1 400-line legacy twin), `raw_plot`, `cycle_info_plot`, `cycles_plot`; figure IO; plotly templates; color/marker helpers | collectors (fig IO, legend/marker helpers, templates) |
 | `utils/collectors.py` | 3 046 | Batch-level collect-then-plot: `BatchCollector` + subclasses, `sequence_plotter` (~550 lines), `summary_plotter`, `cycles_plotter`, `spread_plot`; own fig IO; own templates | plotutils (everything visual), batch_plotters |
 | `utils/batch_tools/batch_plotters.py` | 1 544 | Batch summary plots in **four** backends (bokeh 575 lines, matplotlib, plotly, seaborn), wired into the farm/barn machinery | plotutils + collectors summary plots |
-| `utils/easyplot.py` | 1 953 | Older convenience layer; already verdicted **deprecate 2.0 / remove 2.1** (utils plan §2) | all of the above |
+| `utils/easyplot.py` | 1 953 | Older convenience layer; **deprecate v1.x / remove 2.0** (issue #438, utils plan §2) | all of the above |
 
 The same *figure* — "capacity and coulombic efficiency vs cycle" — can today
 be produced by four different code paths that do not share a line of layout
@@ -250,7 +250,7 @@ BatchCollector
 |---|---|
 | `summary_plot_legacy` + builder duplication | deleted after parity gate (§5 Phase 2) |
 | `batch_plotters.py` (incl. bokeh) | not ported (batch plan §4.7) |
-| `easyplot.py` | deprecated 2.0 → removed 2.1 (already decided) |
+| `easyplot.py` | deprecated v1.x → removed 2.0 (issue #438) |
 | duplicate fig IO / legend helpers / templates | single copies in `figures.py` / `labels.py` / `theme.py` |
 | `_check_*` dev functions in module | move to `dev/` smoke notebook + tests |
 | `interactive=` bool, `xlim`/`ylim` dupes | deprecated aliases for one minor release |
@@ -330,7 +330,7 @@ gains the batch-input column.
 
 ### Phase 5 — removals (on the 2.x cadence)
 
-`easyplot` removal (2.1, already scheduled), `batch_plotters` removal with
+`easyplot` removal (2.0, issue #438), `batch_plotters` removal with
 the batch redesign Phase 4, deprecated aliases (`interactive=`,
 `xlim`/`ylim`, old import paths) removed per the conventions plan.
 

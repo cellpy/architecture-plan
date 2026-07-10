@@ -277,8 +277,8 @@ through save/load/merge, so records are linkable later. Add that to Step 3.
    the new model for testing.
 4. **Step 3 (resolver + loader contract)** — medium-large (touches every loader, but
    each change is mechanical: "set attributes" → "fill draft").
-5. **Step 4 new-format persistence** — depends on the cellpy-file container decision
-   (sidecar JSON vs arrow metadata — decide together with the parquet format work).
+5. **Step 4 new-format persistence** — uses the **zip-of-parquet + `meta.json`**
+   container (issue #438).
 6. **Steps 5–6** — small, after the above.
 
 ## 6. Open questions (decide before or during Step 1)
@@ -295,9 +295,9 @@ through save/load/merge, so records are linkable later. Add that to Step 3.
    with `TestMeta.cell` reserved for the exotic merged-different-cells scenario.
 4. **Controlled vocabularies** for `test_family`/`test_type`/`source_type`: stay free
    text now; collect observed values during migration and revisit.
-5. **Cellpy-file container format** (zip-of-parquet + `meta.json` vs single arrow
-   file with schema metadata) — owned by the file-format work, but Step 4 needs the
-   call.
+5. **Cellpy-file container format** — **decided (issue #438):** zip-of-parquet +
+   sidecar `meta.json` (not a single Arrow file). See native-headers plan Phase 2 and
+   Step 4 below.
 6. **Identity and ontology parking (Stage-0, added 2026-07-09 from the gap
    analysis F10):** core's `column-headers-review.md` §F records the platform
    strategy needs — stable UUIDs for cells / electrodes / materials / protocols /

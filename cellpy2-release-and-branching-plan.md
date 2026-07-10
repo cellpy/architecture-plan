@@ -15,7 +15,13 @@ trailing note.
 | Frames | pandas, legacy headers | polars, native headers |
 | cellpy file | reads v3–v8, writes v8 | **reads v8 + v9, writes v9** (+ `save(format="v8")` compat); v<8 via `cellpy convert` on 1.x |
 | cellpy-core | pinned release (bridge/`OldCellpyCellCore`) | pinned release (native `CellpyCellCore`) |
-| Maintenance | bugfix-only from 2.0 release; **12 months** or last-two-minors, decide with maintainer | mainline |
+| Maintenance | bugfix-only from 2.0 release; **12 months** from 2.0 release date (issue #438) | mainline |
+
+### Decision (2026-07-10, issue #438) — v1.x maintenance window
+
+After cellpy 2.0 ships, the `v1.x` fork receives **bugfix-only** support for **12
+months** from the 2.0 release date (not last-two-minors). Communicate in 2.0 release
+notes and 1.x deprecation warnings.
 
 Communicate the v<8 freeze and the convert path in the 2.0 release notes *and* in the
 1.x deprecation warnings (users hear it before 2.0 exists).

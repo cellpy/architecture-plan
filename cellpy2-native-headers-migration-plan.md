@@ -80,7 +80,7 @@ happens to the data in those columns. Policy, per class:
 
 | Legacy-only column(s) | Import policy |
 |---|---|
-| raw `date_time` | **Convert**, don't carry: derive `epoch_time_utc` (int64 ns UTC) via `cellpycore.timestamps`; keep `date_time` as a passthrough extra column for one release, then drop. Needs an explicit timezone rule for naive legacy datetimes (assume local tz of the machine? assume UTC? → **decision needed**, record on `TestMeta.time_zone`). |
+| raw `date_time` | **Convert**, don't carry: derive `epoch_time_utc` (int64 ns UTC) via `cellpycore.timestamps`; keep `date_time` as a passthrough extra column for one release, then drop. Naive legacy datetimes: **local TZ of the conversion host**, **warn**, record assumed zone on `TestMeta.time_zone` (see decision below). |
 | raw `power`, `charge_energy`, `discharge_energy`, `dv_dt`, `sub_step_index/-time`, AC-impedance, `ref_voltage`, `frequency`, `amplitude` | Passthrough unchanged (native schema tolerates extra columns; `validate_raw_frame` warns, doesn't reject). Native cumulative-energy columns are *not* synthesized from legacy energies — different reset semantics (see core issue #42). |
 | steps `info`, `ustep`, `ir_pct_change`, `test` | Passthrough. |
 | summary cruft (`shifted_*`, `cumulated_ric*`, `cumulated_coulombic_efficiency`, `ocv_*`, `normalized_*`, `low/high_level`) | **Drop on import and recompute on demand.** These are derived columns; cellpy 2's summary accessor recomputes them from the native summary when a legacy consumer asks (the bridge's `_add_legacy_summary_cruft` becomes a free function in cellpy 2's summary utilities). Carrying them risks stale values that no longer match the (re-)computed base columns. |
@@ -90,6 +90,14 @@ happens to the data in those columns. Policy, per class:
 `NATIVE_ONLY_*` columns are simply absent when importing old files — the engines
 tolerate that; recompute (`make_step_table` / `make_summary`) is the documented way to
 get them.
+
+### Decision (2026-07-10, issue #438) — timezone rule (D3)
+
+Naive legacy `date_time` values convert to `epoch_time_utc` assuming **the local
+timezone of the machine performing the conversion**, with a **warning** on each
+conversion. The assumed zone is recorded on `TestMeta.time_zone`. Per-loader
+configurations may declare a vendor-specific override (loader plan §2.1), but the
+shared default is local-not-UTC.
 
 ### D4 — Legacy **export** reuses the bridge machinery, demoted to a converter
 
@@ -160,9 +168,15 @@ to `schema.cycle.discharge_capacity` with a warning naming the ambiguity.
 - `cellpy convert old.h5 new.cellpy --to v9` = `load(accept_old=True)` → `to_native` →
   v9 `save`. This is the user-facing backwards-compatibility story: *convert once,
   then live native*.
-- **Decision needed** (shared with metadata/file plans): container layout
-  (zip-of-parquet vs single arrow file). This plan is layout-agnostic; it only requires
-  "native names + stamped header version".
+- **Container layout (decided):** zip-of-parquet tables + sidecar `meta.json` (see
+  decision below). Native column names + stamped header version are required regardless
+  of zip vs directory layout.
+
+### Decision (2026-07-10, issue #438) — v9 container (Phase 2)
+
+v9 cellpy files use a **zip-of-parquet** archive with a sidecar **`meta.json`**
+(`raw_units`, `cellpy_units`, `limits`, typed meta per metadata plan Step 4). Not a
+single Arrow/IPC file with embedded schema metadata.
 
 ### Phase 3 — Flip the cellpy 2 runtime to native
 
@@ -174,6 +188,11 @@ to `schema.cycle.discharge_capacity` with a warning naming the ambiguity.
   `native_pipeline(raw)` renamed to legacy must numerically equal the frozen legacy
   goldens on all **mapped** columns (identical values, legacy column order not
   required). Keep the v1.x byte oracle alive on the v1.x branch only.
+- **IR semantics (F4):** at this flip, summary extraction uses the **corrected**
+  `ir_charge` / `ir_discharge` extractor (not the legacy buggy `_ir_to_summary`).
+  Those columns stay on the value-parity **exception list** (`tests/parity.py`
+  `exceptions=`) until goldens are regenerated or the shim documents the divergence.
+  Stage 0 oracles remain frozen until the flip.
 - `data.raw` index convention dies here too: keys live in columns
   (polars report §1.1) — fold into the same PR since every loader/consumer is
   already being touched.
@@ -220,7 +239,7 @@ to `schema.cycle.discharge_capacity` with a warning naming the ambiguity.
 
 | Risk | Mitigation |
 |---|---|
-| Timezone semantics of legacy `date_time` → `epoch_time_utc` | Explicit decision + recorded on `TestMeta.time_zone`; property-based round-trip test; default to "naive = local, warn" if undecided |
+| Timezone semantics of legacy `date_time` → `epoch_time_utc` | **Decided (issue #438):** naive = local + warn + `TestMeta.time_zone`; property-based round-trip test |
 | Summary cruft recompute ≠ stored legacy values (old bugs frozen in files, e.g. the legacy IR semantics) | Recompute-equality tested on goldens; where legacy values are *known wrong* (see `summary-extractors.md`), document the intentional difference instead of reproducing it |
 | Users pass legacy column names into cellpy 2 APIs (`x="voltage"`) | Boundary helpers accept legacy names via the mapping for one release, warn, translate |
 | Duplicate-value legacy attrs (`discharge_capacity_raw`) | Shim maps both, warns with disambiguation |
@@ -232,7 +251,7 @@ to `schema.cycle.discharge_capacity` with a warning naming the ambiguity.
 | Phase | Size |
 |---|---|
 | 1 translate + mapping extensions + bridge extraction | 2–3 days |
-| 2 v9 format + convert | 2–3 days (excluding the container-format decision) |
+| 2 v9 format + convert | 2–3 days |
 | 3 runtime flip + new oracle | 3–5 days (the big one; rides with the polars flip) |
 | 4 shim + utils first wave | 2–3 days |
 | 5 retirement | ½ day |

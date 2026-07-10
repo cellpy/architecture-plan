@@ -122,7 +122,7 @@ What the complete system adds over the 2.0 MVP:
 │ APP LAYER                                                        │
 │   utils waves 3–4 done: ica + ocv_rlx on cellpycore.curves;      │
 │   live.py/processor.py rebuilt on core incremental (or dropped   │
-│   deliberately) · easyplot removed · docs/CLI inventory done     │
+│   deliberately) · easyplot removed at 2.0 · docs/CLI inventory done     │
 │   corrected IR semantics as default (documented oracle exception)│
 ├──────────────────────────────────────────────────────────────────┤
 │ IO / PLUGIN LAYER                                                │
@@ -411,10 +411,9 @@ bridge-removal win, not a regression.
 
 Utils waves 3–4 (ica/ocv_rlx on curves; live/incremental rebuilt on core's engine or
 deliberately dropped) · F6 feature menu (test-level summaries, `exclude_step_types`,
-native-only columns in reports) · corrected IR semantics as default · volumetric
-mode · docs/CLI inventory (G11) · SPEED-30 headers behind the Schema indirection ·
+native-only columns in reports) · docs/CLI inventory (G11) · SPEED-30 headers behind the Schema indirection ·
 **2.1: shim removals per `DEPRECATIONS.md`** (prms, headers_*, property facade,
-legacy curve-frame names, easyplot).
+legacy curve-frame names). *(`easyplot` removed at 2.0, issue #438 — not a 2.1 shim.)*
 
 ### 6.1 Safe-to-use API for util developers (start improving plotutils/batch now)
 
