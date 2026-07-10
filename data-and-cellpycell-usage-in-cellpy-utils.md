@@ -186,3 +186,73 @@ Grouped by theme (useful when deciding what must survive a core refactor):
    (CellpyCell property) with `c.data.raw_units`, and read `nom_cap` via `c.data.nom_cap`
    while `batch.py` reads `cell.nominal_capacity`. Standardizing on one path would make
    the core API boundary cleaner.
+
+---
+
+## 9. Addendum: `filters/` / `exporters/` / `internals/` (2026-07-10)
+
+**Scope:** All `*.py` files under `cellpy/cellpy/filters/`, `cellpy/cellpy/exporters/`,
+and `cellpy/cellpy/internals/` (Data/CellpyCell consumers only for the latter).
+**Method:** Same AST member-matching rules as §1–§4 above (receiver-aware; excludes
+`logging`, `str`, `DataFrame` methods, etc.). Produced with
+`.issueflows/00-tools/scan_member_usage.py` and manual spot-check.
+
+### 9.1 Package overview
+
+| Package | Files scanned | `CellpyCell` / `Data` consumer? | Notes |
+|---|---|---|---|
+| `filters/` | `cycles.py`, `summary.py` | **No** | Generic pandas helpers on caller-supplied frames. |
+| `exporters/` | `bdf.py` (+ thin `__init__.py`) | **Yes** (`bdf.py` only) | Thin IO on `cell.data.raw`; delegates cycle filter to `filter_cycles`. |
+| `internals/` | `connections.py`, `otherpath.py` | **No** | Path/SSH helpers only; closes G5 negative finding. |
+
+### 9.2 `filters/` — no core-object access
+
+Neither module holds or receives a `CellpyCell` / `Data`. They are **dataframe utilities**
+intended for reuse by exporters, plotters, and batch tools:
+
+- `filters/cycles.py` — `filter_cycles(df, …)`; default cycle column from
+  `get_headers_normal().cycle_index_txt`.
+- `filters/summary.py` — `filter_summary(df, …)`; default `rate_columns` are summary
+  header *names* passed in by the caller (see hardcoded-headers addendum).
+
+**Migration implication:** wave-1 port is mechanical (polars expressions + native header
+defaults); no utils-contract surface beyond “accept a frame + column names”.
+
+### 9.3 `exporters/bdf.py` — `CellpyCell` members used
+
+Production code (`to_bdf`, `_resolve_filename`, `_build_bdf_frame`):
+
+| Member | Used in | Notes |
+|---|---|---|
+| `cell_name` | `bdf.py:340` | Default output filename when `filename` is omitted. |
+| `headers_normal` | `bdf.py:436` | Resolves raw column names via `_COLUMN_MAP[].cellpy_field` attributes. |
+| `data` | `bdf.py:431`, `437` | Entry to raw frame and `raw_units`. |
+| `data.raw` | `bdf.py:431` | Source time-series; cycle filter + BDF column build. |
+| `data.raw_units` | `bdf.py:437` | pint conversion **source** units (not `cellpy_units`). |
+
+**Not used in production:** `steps`, `summary`, capacity getters, `make_summary` /
+`make_step_table`, IO besides export, `cellpy_units` (mentioned in docstring only —
+export reads loader units from `data.raw_units`).
+
+**Dependency on `filters/`:** `filter_cycles(raw, …, column=headers.cycle_index_txt)` at
+`bdf.py:443`.
+
+**`if __name__ == "__main__"` block (`bdf.py:600–653`):** local debug script only;
+repeats `c.data.raw` / `c.data.raw_units` / `c.to_bdf` for manual file checks — not part
+of the public export path.
+
+### 9.4 `internals/` — no consumers
+
+`connections.py` and `otherpath.py` implement remote-path handling (`OtherPath`, SSH
+checks). No `.data`, `CellpyCell`, or table column access. **No migration work** under
+the utils/core contract.
+
+### 9.5 Observations (addendum)
+
+1. **Exporters are a thin slice of the utils contract** — only `data.raw`, `data.raw_units`,
+   `headers_normal`, and `cell_name` matter for BDF export today.
+2. **Filters stay decoupled** — good for cellpy 2: callers pass native-named frames and
+   column parameters; no hidden `CellpyCell` state.
+3. **`cellpy_units` vs `raw_units` in BDF** — export correctly uses `data.raw_units`;
+   document this distinction when porting (unit plan / `units_label` work).
+
