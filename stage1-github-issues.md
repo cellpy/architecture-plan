@@ -86,3 +86,16 @@ patterns; #117 implements the documented G9/volume recommendations).
 (multi-subsystem + perf), `#452`–`#454` (design/flag-day/UX), `#457` (cross-cutting
 contract change), `#458` (blocked on #438 decisions), `core#118` (major port, gated),
 `#456` (duplicate of #437 — see cross-linking comments), `#459` umbrella.
+
+## Progress (updated 2026-07-11)
+
+- **Closed:** `#446` (Stage 1.1, format spec — PR jepegit/cellpy#475; a follow-up
+  golden/benchmark fix landed as #476/#477), `#456` (conventions machinery — delivered
+  together with Stage-0 #437; the duplication resolved as planned).
+- **Unblocked by the #438 decisions** (now merged to this repo's main, commit
+  8761be1): `#458` (timezone + IR decisions recorded — see issue comment) and
+  `core#118` (curve-schema home confirmed; parity oracle #433 committed).
+- **Added:** `#479` (Stage 1.18) — easyplot v1.x `DeprecationWarning`, the follow-up
+  mandated by decision #438-5; labeled `yolo`.
+- Benchmarks note: `#457`'s gate compares against **GHA ubuntu-latest** baselines
+  (the #436 implementation); local runs are timing-only, no gate.

@@ -44,3 +44,20 @@ hands-off **`yolo`** mode (well-specified, mechanical or pattern-following, low 
 radius, oracle-guarded, no open maintainer decisions) and labeled accordingly:
 `#432` (already labeled by another agent), `#433`, `#434`, `#435`, `#436`, `#437`,
 `core#114`. **Not** yolo: `#438` (maintainer decisions) and the `#439` umbrella.
+
+## Stage 0 complete (2026-07-10/11)
+
+All twelve issues **closed** (tracking #439 closed). Delivered in cellpy:
+`tests/golden_support.py` + `dev/regenerate_goldens.py` (#428),
+`tests/test_cellpy_file_roundtrip.py` incl. the limits-prefix trap pin (#429),
+config characterization + inventory contract (#430),
+`tests/test_unit_handling_stage0.py` with the strict-xfail registry-interop test
+(#431), per-loader and curve golden snapshots (#432/#433), `tests/parity.py` +
+`test_value_parity.py` (#434), scan addenda (#435), `benchmarks/` with GHA
+ubuntu-latest baselines (#436 — baselines captured on the CI runner, not locally;
+peak-RSS informational-only; v9 benchmark deferred until the format lands),
+`cellpy/_deprecation.py` + exception-tree stubs (#437), the six #438 decisions
+(recorded in the plan docs — note: the recording branch was initially stranded
+unmerged on the jepegit mirror as `cursor/438-decision-register-ffdc` and was
+merged to this repo's main 2026-07-11, commit 8761be1), and the core doc-sync
+(core#114). Stage 1 may proceed; see [stage1-github-issues.md](stage1-github-issues.md).

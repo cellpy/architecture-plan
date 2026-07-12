@@ -65,6 +65,10 @@ larger scale. Instead:
 - **Baselines:** capture on v1.x **before** polars Phase A starts (the gap analysis
   point: without a baseline, "faster" is folklore). Store results as committed JSON;
   the CI job compares ±20% and fails on regression outside the band.
+  *(Implemented 2026-07-10, issue #436: baselines are captured on GitHub Actions
+  ubuntu-latest — never on local machines — so the ruler matches the compare
+  runner; a tiered gate replaced the flat band after #476; peak RSS is
+  informational-only; the v9-load benchmark is deferred until the format lands.)*
 - **Acceptance for 2.0:** no metric slower than 1.x; the flip (bridge removal +
   parquet) is expected to show a measurable win on the load and summary paths — if it
   doesn't, investigate before release.
