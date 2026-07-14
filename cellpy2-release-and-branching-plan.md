@@ -26,6 +26,15 @@ notes and 1.x deprecation warnings.
 Communicate the v<8 freeze and the convert path in the 2.0 release notes *and* in the
 1.x deprecation warnings (users hear it before 2.0 exists).
 
+**Release-notes gate for the final v1.x release (added 2026-07-14):** the observed
+1.0.3 → 1.0.4a3 behavior deltas — CE inversion, coulombic-difference sign flip,
+dropped `shifted_*` specific and `reference_voltage_*` columns, the fixed step
+misclassification — must each be confirmed intended and release-noted (or fixed)
+before the final legacy release ships. Register with verdicts:
+[architecture plan §7](cellpy2-architecture-plan.md); source data:
+[cellpy-v103-vs-v104a3-observations.md](cellpy-v103-vs-v104a3-observations.md).
+The final-legacy ship gate itself is architecture plan §6.1.
+
 ## 2. Branch strategy — trunk-based, short-lived flip branches
 
 **Recommendation: no long-lived `v2` branch.** The branch-334 lesson

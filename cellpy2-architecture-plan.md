@@ -1,13 +1,35 @@
 # Plan: the total cellpy 2 architecture (MVP → complete)
 
-**Date:** 2026-07-09 (living document — iterate here; see iteration log at the end)
-**Status:** draft v2 — updated after the
-[gap analysis](cellpy2-plans-gap-analysis.md) and the six plans it spawned.
+**Date:** 2026-07-14 (living document — iterate here; see iteration log at the end)
+**Status:** v3 — Stage 0 complete, Stage 1 in progress; reconciled against the
+implemented code and the [#438 decision register](stage0-github-issues.md).
 This document *coordinates* the topic plans; it decides nothing they own.
-**Scope:** The overall shape of the cellpy 2 solution: package topology, layers, the
-MVP cut vs. the complete system, the design patterns we commit to, the formal
-instrument-loader contract, the implementation timeline, and the safe-to-use API
-surfaces for util and loader developers.
+**How to read this document:** §Status for where we are today → §1–3 for the target
+(MVP and complete) → §4–5 for the design commitments (patterns + loader contract) →
+§6 for the timeline and the **final-legacy-release gate** → §7 for the behavior-delta
+register → §8 if you are a developer wanting to touch utils or loaders now.
+
+---
+
+## Status at a glance (updated 2026-07-14)
+
+| Stage | Status | Evidence |
+|---|---|---|
+| Stage 0 — foundations | ✅ complete 2026-07-11 | all 12 issues closed (tracking [jepegit/cellpy#439](https://github.com/jepegit/cellpy/issues/439)); six #438 decisions recorded in the plan docs; details in [stage0-github-issues.md](stage0-github-issues.md) |
+| Stage 1 — v1.x-safe prep | 🟡 ~60% | closed: #446–#450, #452, #455, #456, #479 · in flight: #453 (M2) · open: #451, #454, #457, #458 + core#115–#118; details in [stage1-github-issues.md](stage1-github-issues.md) |
+| Final legacy (v1.x) release | ⬜ next milestone | ship gate defined in §6.1 |
+| Stage 2 — the flip | ⬜ | gated by Stage-1 exit criteria (#459) |
+| Stage 3 — 2.0 assembly · Stage 4 — 2.1 | ⬜ | |
+
+**Drift check 2026-07-14 (code vs plan): no structural drift.** `readers/cellpy_file/`
+exists as planned (format/read/legacy_read/write + keys/selectors/meta/fids/dtype —
+finer-grained than the plan's four modules, same seam); `cellpy/config/` matches the
+config plan §3.2 model tree; `cellpy/_deprecation.py` + exception stubs, `benchmarks/`
+with GHA-captured baselines, golden/parity harnesses all match. Two *planning*-level
+reconciliations were needed and are folded into §6: the loader port moved out of
+Stage 1 (only its Stage-0 goldens exist; the flip relies on translate-at-ingestion
+instead, which the native-headers plan always allowed), and the benchmark gate became
+tiered on GHA baselines (#476) rather than a flat ±20% band.
 
 ---
 
@@ -52,10 +74,15 @@ shared cadence (introduced 2.0, removed 2.1).
 **Where we already are:** the compute engine (steps, summary, headers, timestamps,
 metadata scaffolding, unit tooling incl. `cellpycore/units/spec.py`) lives in
 `cellpycore` behind the `OldCellpyCellCore` bridge, guarded by contract tests and
-golden fixtures (integration roadmap STEPs 01–11 ✅). The gap analysis confirmed the
-planning surface is now **complete**: every package in cellpy has an owning plan
-(utils wave 0 closes the last scanning blind spot: `filters/`, `exporters/`,
-`internals/` consumers).
+golden fixtures (integration roadmap STEPs 01–11 ✅). On the cellpy side, Stage 0
+(characterization suites, goldens, benchmark baselines, parity comparator,
+conventions machinery, decision register) is **complete**, and Stage 1 has landed the
+whole `cellpy_file/` extraction (incl. typed errors and the `cellpy convert` CLI),
+unit-registry unification, the header-literal cleanup, the parallel pydantic-settings
+config stack, and the first half of the prms shim swap. Every package in cellpy has
+an owning plan; the six #438 maintainer decisions (timezone rule, curves home, v9
+zip-of-parquet container, IR-semantics switch, easyplot removal at 2.0, 12-month
+v1.x maintenance window) are recorded in their owning documents.
 
 ---
 
@@ -365,46 +392,87 @@ flip branch** (>4 weeks alive = stop and re-slice), and `v1.x` forking **at** th
 flip. Cross-repo rule (F9): core-first for additions (core PR → PyPI release →
 cellpy re-pin), cellpy-first for removals.
 
-### Stage 0 — foundations (days; do first, everything imports them)
+### Stage 0 — foundations ✅ complete (2026-07-11)
 
-| # | Work | Plan |
+All twelve issues closed (tracking #439); deliverables and the six #438 decisions
+listed in [stage0-github-issues.md](stage0-github-issues.md). Highlights: golden
+fixture convention + regeneration script, cellpy-file round-trip characterization
+(incl. the limits-prefix trap pin), config inventory contract, per-loader and curve
+golden snapshots, value-parity comparator (`tests/parity.py`), benchmark harness with
+GHA ubuntu-latest baselines, `cellpy/_deprecation.py` + exception-tree stubs.
+
+### Stage 1 — v1.x-safe preparation on master 🟡 in progress
+
+Issue mapping and sequencing in [stage1-github-issues.md](stage1-github-issues.md)
+(tracking #459). Status per track, 2026-07-14:
+
+| Track | Sequence and status | Plans |
 |---|---|---|
-| 0.1 | Conventions PR: exception tree, `warn_once` + `DEPRECATIONS.md`, logging opt-in | conventions (whole plan) |
-| 0.2 | Benchmark harness + **v1.x baseline captured before any polars work** | release §4 |
-| 0.3 | Utils wave 0: scan `filters/`, `exporters/`, `internals/` consumers | utils §3 wave 0 |
-| 0.4 | One-hour doc-sync pass in cellpy-core (stale STEP-12/#54 statuses — F7) | gap analysis F7 |
+| A — config | ✅ #452 parallel pydantic-settings stack · 🟡 #453 shim swap (M1 prms shim + legacy YAML merged; M2 call-site migration in flight; M3 kill import-time init) · ⬜ #454 `cellpy setup` TOML + `setup migrate` | config Steps 0–5 |
+| B — files/headers | ✅ #446–#449: `cellpy_file/` complete (format spec, stateless helpers, read/write moves, out-of-band redirects, typed errors, `cellpy convert` CLI) · ⬜ #458 dormant `translate.py` (**waits core#116**; v9 container decided: zip-of-parquet + `meta.json`) | file-loading (done), native-headers Phase 1–2 |
+| C — frame hygiene | ✅ #455 header-literal cleanup (P1–3) · ⬜ #457 polars Phase A de-indexing + index lint (tiered benchmark gate vs GHA baselines) | native-headers Phase 0, polars A/D |
+| D — core seam (core-first merge order) | ✅ #450 one pint registry, `core`-alias rename · ⬜ core#115 (`convert_value`/`calculate_scaler`/`validate_units`) → tag + re-pin → #451 converter delegation · ⬜ core#116 mapping extensions → #458 · ⬜ core#117 meta mapping · ⬜ core#118 `cellpycore.curves` | units 1–2, metadata Step 1, loader §2.3 |
+| — | ✅ #456 conventions machinery · ✅ #479 easyplot deprecation on v1.x (decision #438-5) | conventions |
 
-### Stage 1 — v1.x-safe preparation on master (parallel tracks, ~4–6 weeks)
+**Timeline correction (2026-07-14):** the original track E (loader `harmonize()` +
+pilot + tiers) is **not** in the Stage-1 issue set — deliberately. Only the Stage-0
+loader goldens (#432) exist; the flip does not wait for ported loaders because
+`load()` translates legacy loader output at ingestion (`to_native()`), exactly the
+transitional path the native-headers plan D2/Phase 3 describes. The loader port
+(harmonize framework, pilot, tiers 1–3) moves wholesale to Stage 3 (see 3.5); the
+`LegacyLoaderAdapter` window lasts correspondingly longer.
 
-| Track | Sequence | Plans |
-|---|---|---|
-| A — config | Steps 0–2 (characterization, constants purge, parallel stack) → 3 (shim swap) → 4 (call-site migration, kill import-time init) | config |
-| B — files/headers | file-loading Steps 0–5 → native-headers Phase 1 (`translate.py`, dormant) → Phase 2 (v9 format + `cellpy convert`; **needs the container-layout decision**, shared with metadata Step 4) | file-loading, native-headers |
-| C — frame hygiene | hardcoded-literals priorities 1–3 → polars Phase A (de-index raw/summary/journal) | native-headers Phase 0, polars |
-| D — core seam (core-first merge order) | metadata Step 1 (mapping) → Step 2 (Data wiring, `test_id` composite keys) · units Phases 1–2 (one registry, delegate converters; `convert_value`/`calculate_scaler` added to core) · curves spec + `cellpycore.curves` (loader Step 2) → **core release → cellpy re-pin** | metadata, units, loader |
-| E — loaders | loader Steps 0–1 (fixtures; `harmonize()` + declaration schema + pilot `maccor_txt`) → Steps 3–4 (tier 1, tier 2) as they become ready | loader (absorbs units Phase 3 + metadata Step 3) |
+Gate for Stage 2 (= Stage-1 exit criteria, #459): `cellpy_file/` owns all I/O ✅ ·
+one registry, no duplicated converters (needs #451) · config free of import-time I/O with a
+green parity contract (needs #453 M2/M3) · `translate.py` round-trip green + #434
+comparator green against the bridge (needs core#116 → #458) · de-indexing done with
+benchmarks in band (needs #457) · core releases tagged and re-pinned.
 
-Gate for Stage 2: tracks B, C, D complete; track E at least through the pilot;
-full v1.x suite green throughout.
+### 6.1 The final legacy (v1.x) release — ship gate
+
+**When can we ship the last 1.x?** At the **Stage-1 exit**, from the same commit the
+flip branch starts and the `v1.x` maintenance branch forks from. One maximally
+prepared release: every behavior-preserving refactor in, every deprecation warning
+users should hear *before* 2.0 exists (easyplot ✅, prms shim with #453, the v<8
+freeze message in `cellpy convert` ✅), plus `setup migrate` so users convert configs
+early. It then gets bugfix-only support for 12 months from the 2.0 release date
+(decision #438-6).
+
+Ship **after** these close, in dependency order:
+
+1. core#115 → core tag + cellpy re-pin → **#451** (converter delegation).
+2. core#116 → core tag + re-pin → **#458** (dormant `translate.py`; its
+   v8→native→v8 round-trip is simultaneously the flip gate).
+3. **#453** M2 (call-site migration, in flight) + M3 (kill import-time init).
+4. **#454** (`cellpy setup` writes TOML + `setup migrate` UX).
+5. **#457** (Phase A de-indexing; tiered benchmark gate in band).
+6. **Behavior-delta sign-off (§7):** every observed 1.0.3→1.0.4 delta confirmed
+   intended (→ release notes) or fixed as a regression. The CE inversion is the
+   headline item — do not ship the final legacy release with it undecided.
+
+**Not** gating: core#117 (meta mapping) and core#118 (curves) — additive core work
+consumed from Stage 2/3 on; include if ready. Everything already closed
+(#446–#450, #452, #455, #456, #479) is in.
 
 ### Stage 2 — the flip (one short-lived branch)
 
-Native-headers Phase 3 + polars Phase C + loader Step 6 (delete legacy
-normalization) in one branch: `CellpyCell.core` → lean `CellpyCellCore`, frames go
-native-named **and** polars in the same migration, rename sandwich deleted, oracle
-switches to value-parity-through-the-mapping (with the documented IR-semantics
-exception, F4). `v1.x` maintenance branch forks here. Benchmarks must show the
-bridge-removal win, not a regression.
+Native-headers Phase 3 + polars Phase C in one branch: `CellpyCell.core` → lean
+`CellpyCellCore`, frames go native-named **and** polars in the same migration,
+rename sandwich deleted, oracle switches to value-parity-through-the-mapping with
+the **documented exception list** (§7 + the F4 IR case) carried by the #434
+comparator. Legacy loaders keep working through `to_native()` at ingestion.
+`v1.x` maintenance branch forks here. Benchmarks must show the bridge-removal win,
+not a regression. (>4 weeks alive = stop and re-slice.)
 
 ### Stage 3 — 2.0 assembly (post-flip on master)
 
 | # | Work | Plan |
 |---|---|---|
-| 3.1 | Native-headers Phase 4: `c.schema` public, `headers_*` → attribute shim; step-type literals → `StepType` enums | native-headers |
-| 3.2 | Utils wave 1 (batch, helpers, filters, diagnostics — defines the **utils contract**) → wave 2 (plotutils, collectors; needs `units_label`, pull it forward if Phase 4 slips) | utils, units Phase 4 |
-| 3.3 | Metadata Steps 3–6: loader drafts everywhere, `MetaResolver`, v9 meta persistence, merge, journal consumers | metadata |
-| 3.4 | Config Steps 5–7: `cellpy setup` writes/migrates TOML; secrets hardening; generated docs | config |
-| 3.5 | Loader Step 5: tier-3 decisions (port biologics/batmo, park ext_nda, warn-only local_instrument) | loader |
+| 3.1 | Native-headers Phase 4: `c.schema` public, `headers_*` → attribute shim; step-type literals → `StepType` enums; v9 format + `convert --to v9` (zip-of-parquet + `meta.json`, decision #438-3) | native-headers |
+| 3.2 | Utils wave 1 (batch, helpers, filters, diagnostics — defines the **utils contract**) → wave 2 (plotutils, collectors; needs `units_label`, pull it forward if Phase 4 slips); the batch/plotting/collectors/ica redesign plans execute here | utils + redesign plans, units Phase 4 |
+| 3.3 | Metadata Steps 3–6: loader drafts, `MetaResolver`, v9 meta persistence, merge, journal consumers | metadata |
+| 3.4 | Config Steps 6–7: secrets hardening, generated docs (Step 5 already shipped with the legacy release) | config |
+| 3.5 | **Loader port (moved from Stage 1):** `harmonize()` framework + declaration schema + pilot `maccor_txt` → tiers 1–2 → tier-3 decisions (port biologics/batmo, park ext_nda, warn-only local_instrument); retires `LegacyLoaderAdapter` | loader (absorbs units Phase 3 + metadata Step 3) |
 | 3.6 | Release: dependency-delta checklist, benchmark acceptance, `DEPRECATIONS.md` complete, v<8-freeze communicated → **cellpy 2.0** | release |
 
 ### Stage 4 — the complete system (2.0.x / 2.1)
@@ -415,7 +483,43 @@ native-only columns in reports) · docs/CLI inventory (G11) · SPEED-30 headers 
 **2.1: shim removals per `DEPRECATIONS.md`** (prms, headers_*, property facade,
 legacy curve-frame names). *(`easyplot` removed at 2.0, issue #438 — not a 2.1 shim.)*
 
-### 6.1 Safe-to-use API for util developers (start improving plotutils/batch now)
+---
+
+## 7. Known behavior deltas (1.0.3 → 1.0.4/2.0) — the delta register
+
+**New finding (2026-07-09, absorbed here 2026-07-14).** The validation notebooks in
+`cellpy-core-dev/notebooks/` (marimo; frozen 1.0.3 reference parquet in
+`cellpy-core-dev/data/reference_v103/`) compared real cellpy 1.0.3 output against
+1.0.4a3 and against the cellpycore engine on six test files. Full details:
+[cellpy-v103-vs-v104a3-observations.md](cellpy-v103-vs-v104a3-observations.md).
+The deltas are **discrete, systematic convention changes plus one bug fix** — not
+numerical drift. Raw data is identical; capacities, end voltages, IR and c-rates
+agree to 1e-6.
+
+**Rule:** every row below gets an explicit verdict — *intended* (→ release notes +
+an entry in the #434 comparator's exception list) or *regression* (→ fixed before
+the final legacy release, §6.1 gate 6). The comparator carries a named exception
+list; it never silently widens tolerances.
+
+| # | Delta (observations §) | Proposed verdict | Where it lands |
+|---|---|---|---|
+| Δ1 | `coulombic_difference` family sign flip (§3.1: exactly ×−1, incl. cumulated + specific variants, `shifted_*`, `cumulated_ric*`) | decide: intended convention change? | release notes + comparator exception |
+| Δ2 | `coulombic_efficiency` inverted — reciprocal, anode cycle-mode (§3.2). **Most user-facing delta found**: first-cycle CE moves across 100%; user QC thresholds change answers | decide — headline release-note item either way; if unintended it is a blocker | release notes + comparator exception, or fix |
+| Δ3 | Six `shifted_*_{gravimetric,areal,absolute}` summary columns dropped (§3.3) | consistent with native-headers D3 "drop and recompute on demand" — confirm | D3 policy table |
+| Δ4 | Seven `reference_voltage_*` step aggregates dropped (§2.3) while raw keeps the column | decide: return via the native path (ties to core#43 `ref_potential`)? | loader/native path, core#43 |
+| Δ5 | Cycle-9 step misclassification in 1.0.3 fixed (empty type, negative duration → correct `cv_charge`, §2.1) | bug fix — keep; document like the F4 IR case | comparator exception (per-file) |
+| Δ6 | steps `sub_type`: `"None"` string → real null (§2.2) | normalize in the legacy bridge or release-note; cheap either way | legacy bridge |
+| Δ7 | `discharge_c_rate` differs between legacy and cellpycore engines (§4) | **investigate before the flip** — likely nominal-capacity plumbing; unexplained engine deltas are not acceptable oracle exceptions | flip-gate task |
+
+Δ1/Δ2 look like two faces of one convention decision (charge−discharge direction and
+the CE ratio direction under anode mode) — decide them together, once, and record in
+the decision-register style of #438.
+
+---
+
+## 8. Developer guardrails — safe-to-use surfaces
+
+### 8.1 Safe-to-use API for util developers (start improving plotutils/batch now)
 
 The usage report §5 showed the utils' real surface is small; the utils plan
 (principle 1) promotes exactly that surface to the documented **utils contract**.
@@ -463,7 +567,7 @@ survives the flip with at most a mechanical rename pass.
 - Storing a `CellpyCell` in an attribute named `data` (the `ocv_rlx`
   `self.data.data.steps` trap — being renamed in wave 3).
 
-### 6.2 Safe-to-use surface for loader developers
+### 8.2 Safe-to-use surface for loader developers
 
 If you write or port a loader now, build against the loader plan's target and your
 work is flip-proof:
@@ -495,7 +599,7 @@ work is flip-proof:
 
 ---
 
-## 7. Iteration log
+## 9. Iteration log
 
 - **2026-07-09 (v1)** — initial version: total-solution synthesis, MVP vs. complete
   illustrations, design-pattern commitments, formal loader contract (§5).
@@ -511,3 +615,16 @@ work is flip-proof:
   (config plan §5b); added the timeline chapter (§6: Stages 0–4, flip gate,
   cross-repo merge order) and the safe-to-use API sub-chapters for util developers
   (§6.1) and loader developers (§6.2).
+- **2026-07-14 (v3)** — post-implementation checkup after Stage 0 completed and
+  Stage 1 reached ~60%: added the status dashboard (top) with a drift verdict
+  (no structural drift; `cellpy_file/` and `cellpy/config/` match their plans);
+  rewrote the timeline (§6) with per-track/per-issue status and two corrections —
+  the loader port moved from Stage 1 to Stage 3 (the flip uses `to_native()` at
+  ingestion instead of waiting for ported loaders) and the benchmark gate is tiered
+  on GHA baselines (#476); added the **final-legacy-release ship gate** (§6.1:
+  after #451, #453 M2/M3, #454, #457, #458 + core#115/#116 re-pins + the §7
+  sign-off); added the **behavior-delta register** (§7, Δ1–Δ7) absorbing the
+  1.0.3-vs-1.0.4a3 validation-notebook findings, which no plan previously
+  referenced; renumbered developer guardrails to §8 and this log to §9; folded the
+  #438 decisions (timezone, curves home, v9 container, IR switch, easyplot at 2.0,
+  12-month maintenance window) into §1/§6.

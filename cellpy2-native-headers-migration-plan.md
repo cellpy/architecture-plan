@@ -240,7 +240,7 @@ single Arrow/IPC file with embedded schema metadata.
 | Risk | Mitigation |
 |---|---|
 | Timezone semantics of legacy `date_time` → `epoch_time_utc` | **Decided (issue #438):** naive = local + warn + `TestMeta.time_zone`; property-based round-trip test |
-| Summary cruft recompute ≠ stored legacy values (old bugs frozen in files, e.g. the legacy IR semantics) | Recompute-equality tested on goldens; where legacy values are *known wrong* (see `summary-extractors.md`), document the intentional difference instead of reproducing it |
+| Summary cruft recompute ≠ stored legacy values (old bugs frozen in files, e.g. the legacy IR semantics) | Recompute-equality tested on goldens; where legacy values are *known wrong* (see `summary-extractors.md`), document the intentional difference instead of reproducing it. Concrete instances now cataloged with verdicts in the [architecture plan §7 delta register](cellpy2-architecture-plan.md) (CE inversion, coulombic sign flip, cv_charge step fix, `discharge_c_rate` engine mismatch) — the Phase-3 #434 comparator carries that named exception list |
 | Users pass legacy column names into cellpy 2 APIs (`x="voltage"`) | Boundary helpers accept legacy names via the mapping for one release, warn, translate |
 | Duplicate-value legacy attrs (`discharge_capacity_raw`) | Shim maps both, warns with disambiguation |
 | v1.x and cellpy 2 sharing `cellpy_file/` while diverging | The translate step is a wrapper, not a fork; CI runs the module's tests from both branches during the transition |

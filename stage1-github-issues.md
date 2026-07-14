@@ -87,15 +87,33 @@ patterns; #117 implements the documented G9/volume recommendations).
 contract change), `#458` (blocked on #438 decisions), `core#118` (major port, gated),
 `#456` (duplicate of #437 — see cross-linking comments), `#459` umbrella.
 
-## Progress (updated 2026-07-11)
+## Progress (updated 2026-07-14)
 
-- **Closed:** `#446` (Stage 1.1, format spec — PR jepegit/cellpy#475; a follow-up
-  golden/benchmark fix landed as #476/#477), `#456` (conventions machinery — delivered
-  together with Stage-0 #437; the duplication resolved as planned).
-- **Unblocked by the #438 decisions** (now merged to this repo's main, commit
-  8761be1): `#458` (timezone + IR decisions recorded — see issue comment) and
-  `core#118` (curve-schema home confirmed; parity oracle #433 committed).
-- **Added:** `#479` (Stage 1.18) — easyplot v1.x `DeprecationWarning`, the follow-up
-  mandated by decision #438-5; labeled `yolo`.
+- **Closed:** `#446` (1.1 format spec — PR #475; golden/benchmark follow-up #476/#477),
+  `#447` (1.2 stateless helpers + explicit load limits — PR #482),
+  `#448` (1.3 read/write paths into `cellpy_file/` — PR #483),
+  `#449` (1.4 out-of-band redirects, typed errors, `cellpy convert` CLI — PR #484),
+  `#450` (1.5 one pint registry — PR #481),
+  `#452` (1.7 parallel pydantic-settings stack — PR #493),
+  `#455` (1.10 header-literal cleanup — PR #485),
+  `#456` (1.11 conventions machinery — with Stage-0 #437),
+  `#479` (1.18 easyplot deprecation — PR #480).
+  A full-suite green fix landed as PR #492 after the 1.2–1.4 moves.
+- **In flight:** `#453` (1.8) — M1 (prms shim + legacy YAML load path) merged as
+  PR #494; M2 call-site migration in progress on branch `453-prms-m2-migrate`;
+  M3 (kill import-time init) remains.
+- **Open:** `#451` (waits core#115 tag + re-pin), `#454`, `#457`, `#458` (waits
+  core#116), and **all four core issues** `core#115`–`core#118` — the core-first
+  merge order is now the critical path; core#115/#116 should be tackled next.
+- **Track E note:** the loader `harmonize()` port was deliberately *not* issued in
+  Stage 1; it moved to Stage 3 (architecture plan §6, timeline correction
+  2026-07-14). Only the Stage-0 goldens (#432) exist for the loaders.
+- **New exit item (proposed 2026-07-14):** behavior-delta sign-off — the
+  [1.0.3 vs 1.0.4a3 observations](cellpy-v103-vs-v104a3-observations.md) (CE
+  inversion, coulombic sign flip, dropped columns, `discharge_c_rate` engine
+  mismatch) must each be confirmed intended or fixed **before the final legacy
+  release** ships; register and verdict tracking in the
+  [architecture plan §7](cellpy2-architecture-plan.md). Consider adding this to
+  #459's exit-criteria list.
 - Benchmarks note: `#457`'s gate compares against **GHA ubuntu-latest** baselines
-  (the #436 implementation); local runs are timing-only, no gate.
+  (the #436 implementation, tiered after #476); local runs are timing-only, no gate.
