@@ -25,6 +25,18 @@ systematic convention changes (sign, ratio direction, schema) plus one clear
 bug fix. Each should be confirmed as *intended* and, where user-facing,
 mentioned in release notes / migration docs.
 
+## Resolution status (2026-07-15)
+
+All deltas below have been triaged against the current cellpy-core code and
+resolved. Summary (details in each section and in the linked cellpy-core issues):
+
+| Delta | Verdict | Action taken |
+|-------|---------|--------------|
+| §3.1 sign flip + §3.2 CE inversion | **Regression, now fixed** | Root cause was `cycle_mode="anode"` not being applied as `TestMode.INVERTED`: the string→enum translator only matched the literal `"anode"` (cellpy-core #127) *and* the legacy bridge summary never passed `test_mode` (cellpy-core #129). Both merged; anode CE/coulombic_difference now match 1.0.3. |
+| §2.1 misclassified step | **1.0.3 bug, correctly fixed in new** | Accepted as an improvement; added a guard test that `step_time_delta` is never negative (cellpy-core #132). |
+| §4 `discharge_c_rate` | **Not a bug / not reproducible** | Both engines agree exactly on charge and discharge C-rate at any `nom_cap`; the reported mismatch was a notebook nom-cap plumbing artifact (or already fixed by the C-rate refactor #21/#98/#99). Closed (cellpy-core #130). |
+| §2.2 `sub_type` null, §2.3 `reference_voltage_*`, §3.3 `shifted_*` specific | **Intended; keep as-is** | Consumer grep across the cellpy repo found **none** of these are read by cellpy analysis/plotting code (cellpy-core #131). Documented as intentional; old files still load. See `cellpy-v104-migration-notes.md`. |
+
 ## 1. Raw data — identical
 
 All 16 raw columns agree exactly (rtol 1e-6) for all aligned data points.
@@ -127,17 +139,27 @@ legacy names:
 - Native summary is much narrower (21 columns vs 51+); scaled/specific
   columns come from `add_scaled_summary_columns` as an explicit second step.
 
-## 5. Open questions
+## 5. Open questions — resolved (2026-07-15)
 
 1. Are the sign flip (§3.1) and the CE inversion (§3.2) intended convention
-   changes? If yes, document in release notes; if only one of them is
-   intended, the other is a regression.
+   changes? **No — both were a regression, now fixed.** They were two faces of
+   one root cause: `cycle_mode="anode"` was not applied as `TestMode.INVERTED`.
+   Fixed in cellpy-core #127 (translator only matched the literal `"anode"`) and
+   #129 (legacy bridge summary never passed `test_mode`). Anode
+   `coulombic_efficiency` / `coulombic_difference` now match 1.0.3.
 2. Should `reference_voltage_*` step aggregates (§2.3) and the
-   `shifted_*` specific summary columns (§3.3) come back?
+   `shifted_*` specific summary columns (§3.3) come back? **No.** A consumer grep
+   across the cellpy repo found neither is read by analysis/plotting code
+   (cellpy-core #131). Kept dropped; old files still load. Documented in
+   `cellpy-v104-migration-notes.md`.
 3. `discharge_c_rate` mismatch between legacy and cellpycore engines (§4) —
-   nominal-capacity plumbing or rounding?
+   nominal-capacity plumbing or rounding? **Neither — not reproducible.** Both
+   engines agree exactly (charge and discharge, any `nom_cap`); the mismatch was
+   a notebook nom-cap plumbing artifact. Closed (cellpy-core #130).
 4. `sub_type` `"None"`-string vs NaN (§2.2) — worth normalizing in the
-   legacy bridge?
+   legacy bridge? **No.** No cellpy code string-compares `sub_type` against
+   `"None"`; the native engine's real null is kept. Documented as a migration
+   note for external CSV consumers.
 
 ## Reproducing
 
