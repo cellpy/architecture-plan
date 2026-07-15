@@ -16,9 +16,9 @@ register → §8 if you are a developer wanting to touch utils or loaders now.
 | Stage | Status | Evidence |
 |---|---|---|
 | Stage 0 — foundations | ✅ complete 2026-07-11 | all 12 issues closed (tracking [jepegit/cellpy#439](https://github.com/jepegit/cellpy/issues/439)); six #438 decisions recorded in the plan docs; details in [stage0-github-issues.md](stage0-github-issues.md) |
-| Stage 1 — v1.x-safe prep | 🟡 ~60% | closed: #446–#450, #452, #455, #456, #479 · in flight: #453 (M2) · open: #451, #454, #457, #458 + core#115–#118; details in [stage1-github-issues.md](stage1-github-issues.md) |
-| Final legacy (v1.x) release | ⬜ next milestone | ship gate defined in §6.1 |
-| Stage 2 — the flip | ⬜ | gated by Stage-1 exit criteria (#459) |
+| Stage 1 — v1.x-safe prep | ✅ issue set complete 2026-07-15 | all sub-issues closed (cellpy #446–#458, #479; core#115–#118 shipped as **cellpycore 0.2.0** + re-pin); #459 stays open only for the §7 delta sign-off; details in [stage1-github-issues.md](stage1-github-issues.md) |
+| Final legacy (v1.x) release | 🟡 next milestone | all §6.1 gates met **except gate 6** (behavior-delta sign-off, §7 — maintainer decisions) |
+| Stage 2 — the flip | ⬜ | unblocked technically; schedule after the legacy release ships |
 | Stage 3 — 2.0 assembly · Stage 4 — 2.1 | ⬜ | |
 
 **Drift check 2026-07-14 (code vs plan): no structural drift.** `readers/cellpy_file/`

@@ -87,6 +87,25 @@ patterns; #117 implements the documented G9/volume recommendations).
 contract change), `#458` (blocked on #438 decisions), `core#118` (major port, gated),
 `#456` (duplicate of #437 — see cross-linking comments), `#459` umbrella.
 
+## Progress (updated 2026-07-15) — **Stage-1 issue set complete**
+
+All remaining work items closed 2026-07-15, each via its own suite-green PR:
+
+- **cellpy-core** (released as **cellpycore 0.2.0** on PyPI, re-pinned in
+  cellpy): `core#115` units helpers (PR core#123) · `core#116` mapping
+  extensions (PR core#124) · `core#117` meta_mapping + G9/volume decisions
+  implemented (PR core#125) · `core#118` `cellpycore.curves` with rtol-1e-9
+  parity vs the #433 snapshots (PR core#126).
+- **cellpy:** `#451` converter delegation + 0.2.0 re-pin (PR #497; also fixed
+  three M2 leftovers incl. the `log.setup_logging` config shadowing) ·
+  `#453` closed after M1–M3 (PRs #494–#496) · `#454` setup TOML twin +
+  `setup migrate` + `info --config` (PR #498) · `#457` Phase-A de-indexing +
+  warn-only index lint, benchmark gate green (PR #499) · `#458` dormant
+  `translate.py`, v8→native→v8 exact, #434 comparator green (PR #500).
+- **#459 (umbrella) stays open** for the one remaining exit criterion: the
+  behavior-delta sign-off (architecture plan §7) — maintainer decisions that
+  gate the final v1.x release (architecture plan §6.1).
+
 ## Progress (updated 2026-07-14)
 
 - **Closed:** `#446` (1.1 format spec — PR #475; golden/benchmark follow-up #476/#477),

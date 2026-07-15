@@ -156,12 +156,26 @@ Deliverable: `cellpycore/legacy/meta_mapping.py` with:
 add a spec'd `extra: dict[str, str]` escape field on both models. Do **not** silently
 drop populated values.
 
+> **Decided (2026-07-14, core#117):** the recommendation stands — the three fields
+> (`tester_server_software_version`, `tester_client_software_version`,
+> `tester_calibration_date`) are now `TestMeta` fields, mapped identity-wise in
+> `COMMON_TO_TEST_PAIRS`. No `extra` dict.
+
 **Also decide here** *(added 2026-07-09, cross-check vs unit-handling-cellpy2-plan.md)*:
 `CellMeta.volume`. The unit plan's Phase 5 implements volumetric specific-capacity
 mode (`nominal_capacity_as_absolute` currently raises `NotImplementedError` for it),
 which needs a volume on the cell; legacy carries it only as commented-out property
 stubs (`data_structures.py:599–605`). Recommendation: add `volume: Optional[float]`
 to `CellMeta` alongside `active_electrode_area` (cellpy units convention, `cm**3`).
+
+> **Decided (2026-07-14, core#117):** `CellMeta.volume: Optional[float]` added
+> (cellpy units convention, `cm**3`), listed `CORE_ONLY`, and wired into
+> `get_converter_to_specific(mode="volumetric", cell_meta=…)`. Step 1 is
+> implemented as `cellpycore/legacy/meta_mapping.py` (pair tables, `LEGACY_ONLY`
+> destinations, `coerce_test_id`, `legacy_meta_to_core`), with one quirk found:
+> legacy `schedule_file_name` is an **un-annotated class attribute**, not a
+> dataclass field — pinned and documented in the module; cellpy's contract test
+> must compare against fields *plus* that attribute.
 
 Tests: bijectivity of pairs, round-trip identity, totality
 (fields(legacy) == mapped ∪ LEGACY_ONLY, fields(core) == mapped ∪ CORE_ONLY) —
