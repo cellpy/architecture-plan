@@ -8,8 +8,11 @@ Authoritative **cellpy 2 architecture and migration plans** for the
 Topic plans (configuration, loaders, units, native headers, polars port, utils
 migration, release/branching, conventions), the coordinating
 [`cellpy2-architecture-plan.md`](cellpy2-architecture-plan.md), gap analysis
-([`cellpy2-plans-gap-analysis.md`](cellpy2-plans-gap-analysis.md)), and Stage 0 issue
-notes ([`stage0-github-issues.md`](stage0-github-issues.md)).
+([`cellpy2-plans-gap-analysis.md`](cellpy2-plans-gap-analysis.md)), Stage 0 issue
+notes ([`stage0-github-issues.md`](stage0-github-issues.md)), and the suggested
+module layout
+([`cellpy2-module-layout-planning.md`](cellpy2-module-layout-planning.md) +
+[`.excalidraw`](cellpy2-module-layout-planning.excalidraw)).
 
 ## Sibling repositories
 
