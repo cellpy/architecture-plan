@@ -10,7 +10,7 @@ topic plans (batch / plotting / collect / instruments / cellpy_file). It does
 not override those plans; it shows how they fit together on disk.
 
 **How to read:** §1 layers → §2 `cellpy/` tree → §3 `cellpycore/` → §4 data flow
-→ §5 today→target → §6 future developments (F1–F3).
+→ §5 today→target → §6 future developments (F1–F4).
 
 ---
 
@@ -22,7 +22,7 @@ not override those plans; it shows how they fit together on disk.
 | **promote / new** | Lift to a new top-level package (or create) |
 | **shim** | Compatibility surface: warn in 2.0, remove in 2.1 |
 | **retire** | Emptied / deleted after the move |
-| **future (F1–F3)** | Not scheduled; natural home marked for later work |
+| **future (F1–F4)** | Later work (or open issue); natural home marked on the figure |
 
 ---
 
@@ -72,9 +72,10 @@ cellpy/
   parameters/                [shim]
       prms.* maps onto config (user notebooks; guts gone in 2.1)
 
-  CellpyCell facade          [promote / shrink]
+  CellpyCell facade          [promote / shrink]                     ← F4
       today: readers/cellreader.py
       thin shell: load/save · delegate engines · property facade
+      (+ calculate_efc / make_summary(add_efc=True) for #501)
 
   # --- I/O adapters (split today's readers/) ---
   instruments/               [promote from readers/instruments]     ← F2
@@ -136,12 +137,13 @@ Prefer not a grab-bag `base/` package:
 ```text
 cellpycore/
   cell_core.py                 Data · CellpyCellCore · validate_raw
-  summarizers.py · extractors.py   steps + summary engines
+  summarizers.py · extractors.py   steps + summary engines   ← F4 (EFC option)
   curves.py                    get_cap family · CurveCols schema
   merge.py · timestamps.py     multi-test · epoch ns UTC
   metadata/                    models · io (scaffolding only)
-  units/                       spec · converters
+  units/                       spec · converters (Q_nom helpers)
   legacy/                      mapping · headers bridge
+  # optional: throughput.py    EFC / Ah-throughput engine (#501)
 ```
 
 Consumer truth is the PyPI pin in cellpy’s `[project.dependencies]`. Local
@@ -198,8 +200,9 @@ F3 is an export branch off the processed data (not `cellpy_file`).
 
 ## 6. Future developments — where they fit
 
-Not scheduled yet. Markers show the natural home so later work does not invent
-a parallel I/O stack.
+Markers show the natural home so later work does not invent a parallel stack.
+F1–F3 are not scheduled; **F4** is open as [cellpy#501](https://github.com/jepegit/cellpy/issues/501)
+(milestone v2.1).
 
 ### F1 — BatBase metadata (Django API + PostgreSQL)
 
@@ -235,6 +238,33 @@ Export four layers with a defined file-naming and folder-structure specification
 | **Not in** | `cellpy_file/` — that is the native v9 cellpy container (zip-of-parquet), a different product |
 | **Core** | supplies the frames only; naming and folder policy stay in the app layer |
 
+### F4 — Equivalent Full Cycles (EFC) — [cellpy#501](https://github.com/jepegit/cellpy/issues/501)
+
+Throughput-based ageing metric from continuous time-series (operational / BMS /
+field data without clean cycle boundaries). Milestone **v2.1**.
+
+Proposed API (issue):
+
+```python
+cell.calculate_efc(nominal_capacity=300.0)
+# or
+cell.make_summary(add_efc=True)
+```
+
+Core idea: \(Q_\mathrm{throughput} = \sum |I|\,\Delta t\), then
+\(EFC = Q_\mathrm{throughput} / (2 Q_\mathrm{nom})\). Optional columns on raw
+and/or summary (`cumulative_ah_throughput`, `equivalent_full_cycles`, …).
+
+| | |
+|---|---|
+| **Home** | `cellpycore` — pure frame math on native raw (extend `summarizers` / `extractors`, or a small `throughput.py`; same pattern as `curves`) |
+| **Also** | CellpyCell facade — thin wrappers; \(Q_\mathrm{nom}\) from kwargs / meta via existing unit helpers (`nominal_capacity_as_absolute`) |
+| **Not in** | `utils/` (no second private formula); not an I/O package (`instruments/`, `db/`, `exporters/`) |
+| **Later consumers** | `plotting/` / `collect/` / F3 export may *use* EFC columns once they exist |
+
+Note: plotutils today may label `normalized_cycle_index` as “Equivalent Full
+Cycle” — that is a **different** cycle-index concept, not throughput EFC.
+
 ---
 
 ## 7. Iteration log
@@ -242,3 +272,4 @@ Export four layers with a defined file-naming and folder-structure specification
 | Date | Change |
 |---|---|
 | 2026-07-16 | Initial sketch + Excalidraw companion; F1/F2/F3 future homes recorded |
+| 2026-07-16 | F4: EFC (#501) home on `cellpycore` + CellpyCell facade |
