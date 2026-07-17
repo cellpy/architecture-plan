@@ -128,8 +128,12 @@ G1's utils plan as an explicit module, or drop the modules deliberately.**
 `cellpy setup` migration is planned (config plan Step 5); the rest of the CLI
 (`new`, `edit`, `pull` templates), the cookiecutter template registry, hosted
 example-data (`example_data.py` downloads), and the user-docs rewrite for changed
-APIs are unplanned. Core solved its docs tooling (zensical-docs.md) — decide whether
-cellpy 2 follows. **Action: docs/CLI inventory pass; can trail everything else.**
+APIs were unplanned. **Action (2026-07-17): done as two plans** —
+[CLI redesign](cellpy2-cli-redesign-plan.md) (Click→Typer, library-first
+`cli_api`) and [documentation](cellpy2-documentation-plan.md) (Zensical,
+researcher-first IA, docstring-driven API refs). Templates / example-data
+refresh remain sub-tasks inside those plans (CLI `new`/`pull`; docs examples
+track). Still trailing relative to the flip (release plan §6).
 
 ### G12 — Third-party extension API: loader plugins + exporter contract *(added 2026-07-09)*
 
@@ -273,7 +277,7 @@ plan's open questions.
 | G6 | Conventions (exceptions/logging/deprecations) | [cellpy2-conventions-plan.md](cellpy2-conventions-plan.md) | ✅ plan written |
 | G9+G8+F9 | Release, branching, benchmarks, merge order | [cellpy2-release-and-branching-plan.md](cellpy2-release-and-branching-plan.md) | ✅ plan written |
 | G7 | OtherPath decision | config plan §5b addendum | ✅ recorded |
-| G11 | Docs/CLI inventory | release plan §6 (trailing) | parked there |
+| G11 | Docs + CLI | [cellpy2-documentation-plan.md](cellpy2-documentation-plan.md) + [cellpy2-cli-redesign-plan.md](cellpy2-cli-redesign-plan.md) | ✅ plans written (2026-07-17); still trailing vs flip |
 | G12 | Extension API: loader entry points + exporter contract | loader/extraction plan §2.4 + Step 7 | ✅ recorded (2026-07-09) |
 | F1 | SPEED-30 convergence note | unit plan §8 + native-headers plan D5 | ✅ both recorded |
 | F2, F3, F5 | Adopt enums / naming / engine gaps | loader + utils plans inherit | ✅ folded in |

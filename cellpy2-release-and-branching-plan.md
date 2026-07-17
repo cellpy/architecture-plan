@@ -93,9 +93,16 @@ it is explicitly *not* a 2.0 goal.
 
 ## 6. Trailing: docs and CLI (G11)
 
-Not release-blocking, tracked here so it isn't lost: docs rewrite for changed APIs
-(generated config + deprecation tables already come from their plans), decide whether
-cellpy 2 adopts core's zensical docs tooling, CLI inventory beyond `setup`
-(`new`/`edit`/templates/`pull`), template-registry and example-data (v9 regeneration
-is in the utils plan). One inventory pass after the flip; a `cellpy2-docs-plan.md`
-only if the inventory turns out non-trivial.
+Not release-blocking; owned by dedicated plans (written 2026-07-17):
+
+- [cellpy2-documentation-plan.md](cellpy2-documentation-plan.md) — Sphinx→Zensical
+  (follow cellpy-core), researcher-first information architecture, docstring-driven
+  API reference cleanup, example notebook re-render policy.
+- [cellpy2-cli-redesign-plan.md](cellpy2-cli-redesign-plan.md) — Click→Typer;
+  extract library-first `cli_api` so `setup` / `run` / `pull` / `new` / `convert`
+  are callable from scripts; config Step 5 still owns the *config* side of `setup`.
+
+Generated config + deprecation tables still come from the config / conventions
+plans; v9 example-data regeneration stays in the utils plan. Sequence: CLI Phase 0–1
+(behavior-preserving extract) can start before the flip; docs content rewrite and
+Typer cutover trail Stage 3 API stabilization.

@@ -50,6 +50,8 @@ tiered on GHA baselines (#476) rather than a flat ±20% band.
 | [cellpy2-collectors-redesign-plan.md](cellpy2-collectors-redesign-plan.md) | Collection layer: `Collection` with provenance, options dataclasses replacing "elevated arguments", `concat_summaries` consolidation |
 | [cellpy2-ica-redesign-plan.md](cellpy2-ica-redesign-plan.md) | ICA + DVA: `dqdv()` and new `dvdq()` on one pure core, `IcaOptions`, specced long-format output frames |
 | [cellpy2-conventions-plan.md](cellpy2-conventions-plan.md) | Exceptions, logging, deprecation cadence (`warn_once`, `DEPRECATIONS.md`) |
+| [cellpy2-cli-redesign-plan.md](cellpy2-cli-redesign-plan.md) | Click→Typer; library-first `cli_api` so commands are callable from scripts |
+| [cellpy2-documentation-plan.md](cellpy2-documentation-plan.md) | Sphinx→Zensical; researcher-first IA; API refs via docstring cleanup |
 | [cellpy2-release-and-branching-plan.md](cellpy2-release-and-branching-plan.md) | 2.0 support matrix, trunk-based flip, cross-repo merge order, benchmarks |
 | [cellpy2-plans-gap-analysis.md](cellpy2-plans-gap-analysis.md) | The cross-read that produced the set; ownership table in its §3 |
 
@@ -149,7 +151,7 @@ What the complete system adds over the 2.0 MVP:
 │ APP LAYER                                                        │
 │   utils waves 3–4 done: ica + ocv_rlx on cellpycore.curves;      │
 │   live.py/processor.py rebuilt on core incremental (or dropped   │
-│   deliberately) · easyplot removed at 2.0 · docs/CLI inventory done     │
+│   deliberately) · easyplot removed at 2.0 · docs/CLI plans executed     │
 │   corrected IR semantics as default (documented oracle exception)│
 ├──────────────────────────────────────────────────────────────────┤
 │ IO / PLUGIN LAYER                                                │
