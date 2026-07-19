@@ -392,6 +392,26 @@ The oracle records 53 figures structurally (trace counts, names, axis
 assignment, series endpoints, axis titles). Mutation-checked: turning the
 formation split off turns 46 of 56 red.
 
+### Phase 2a — summary_plot_legacy was a corpse, not a twin (cellpy#596)
+
+§1.2's premise — "two implementations of the same figure that must be
+bug-fixed in tandem" — turned out to be false in the most decisive way.
+Running the parity gate showed **every** invocation of `summary_plot_legacy`
+raised `TypeError` at its first statement: it unpacked the return value of
+`SummaryPlotInfo._create_col_info`, which stores results as attributes and
+returns `None`. The twin has been unable to draw anything since the refactor
+that introduced the class. Deleted (1 438 lines + one exclusive helper); the
+name survives as a `warn_once` delegate to `summary_plot`, removal 2.1.
+plotutils: 6 318 → 4 932 lines against the §4 target of ~3 200.
+
+Third instance of the issue's real theme: unobserved code. The CI exclusion
+hid broken plot functions; the "fallback" was itself broken; the double-patch
+anxiety (#366) was spent keeping a corpse in sync.
+
+Remaining Phase 2 scope is unchanged (FigureSpec, one generic formation
+layout engine, `backends/mpl.py`, SeabornPlotBuilder retired) but starts from
+a smaller module and with §1.2's tandem-bug-fixing burden already gone.
+
 ### Phase 1 — what consolidation actually turned up
 
 Two of the "copies" were not copies, and the differences mattered:
