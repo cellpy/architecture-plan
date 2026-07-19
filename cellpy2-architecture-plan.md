@@ -17,9 +17,10 @@ register → §8 if you are a developer wanting to touch utils or loaders now.
 |---|---|---|
 | Stage 0 — foundations | ✅ complete 2026-07-11 | all 12 issues closed (tracking [jepegit/cellpy#439](https://github.com/jepegit/cellpy/issues/439)); six #438 decisions recorded in the plan docs; details in [stage0-github-issues.md](stage0-github-issues.md) |
 | Stage 1 — v1.x-safe prep | ✅ issue set complete 2026-07-15 | all sub-issues closed (cellpy #446–#458, #479; core#115–#118 shipped as **cellpycore 0.2.0** + re-pin); #459 stays open only for the §7 delta sign-off; details in [stage1-github-issues.md](stage1-github-issues.md) |
-| Final legacy (v1.x) release | 🟡 next milestone | all §6.1 gates met **except gate 6** (behavior-delta sign-off, §7 — maintainer decisions) |
-| Stage 2 — the flip | ⬜ | unblocked technically; schedule after the legacy release ships |
-| Stage 3 — 2.0 assembly · Stage 4 — 2.1 | ⬜ | |
+| Final legacy (v1.x) release | ✅ shipped | v1.1 milestone closed; `v1.x` branch carries bugfix-only maintenance |
+| Stage 2 — the flip | ✅ complete 2026-07-18 | flip Stages 0–6 merged (#511, #548–#557); `native_schema` default on; value-parity oracle real; released as **v2.0.0a5** |
+| Stage 3 — 2.0 assembly | 🟡 issue set created 2026-07-19 | 18 issues on the `v2.0.0` milestone, tracking [#575](https://github.com/jepegit/cellpy/issues/575); scope decision (2 of 4 redesigns in 2.0) in [stage3-github-issues.md](stage3-github-issues.md) |
+| Stage 4 — 2.1 | ⬜ | batch v3 + collectors redesigns, utils waves 3–4, shim removals |
 
 **Drift check 2026-07-14 (code vs plan): no structural drift.** `readers/cellpy_file/`
 exists as planned (format/read/legacy_read/write + keys/selectors/meta/fids/dtype —
@@ -467,6 +468,17 @@ comparator. Legacy loaders keep working through `to_native()` at ingestion.
 not a regression. (>4 weeks alive = stop and re-slice.)
 
 ### Stage 3 — 2.0 assembly (post-flip on master)
+
+Issue mapping, the 2.0-vs-2.1 scope decision and the sequencing constraints live in
+[stage3-github-issues.md](stage3-github-issues.md) (tracking
+[#575](https://github.com/jepegit/cellpy/issues/575)).
+
+**Scope correction (2026-07-19) to row 3.2 below:** only **two** of the four utils
+redesign plans are 2.0-blocking — **ica** (its output frame is a data contract) and
+**plotting** (2.0 already breaks that surface via the easyplot removal). **batch v3**
+and the **collectors** collection redesign move to Stage 4 behind facades. The test
+applied: 2.0 finalizes what cannot be shimmed; API sprawl that rides on `warn_once`
+is cleaned in 2.1 on the conventions cadence.
 
 | # | Work | Plan |
 |---|---|---|
