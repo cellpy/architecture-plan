@@ -149,6 +149,29 @@ third-party exporters, same lazy mechanics as loaders. The BDF exporter
 eventually become thin wrappers over exporters that follow the same contract
 (utils-plan territory, not this plan).
 
+### 2.5 Harmonize policy decisions (2026-07-20, maintainer, cellpy#599)
+
+Settled before the tier port so every ported loader starts from the same
+rules:
+
+1. **Unknown vendor columns are warn + drop.** `harmonize()` drops every
+   undeclared column (that is what keeps the harmonized frame on-spec), and
+   now warns once per load naming the unrecognised ones. Deliberate discards
+   are listed in `LoaderDeclarations.dropped` and drop silently — a column
+   cannot be both mapped and dropped (`LoaderError`). Rejected alternatives:
+   keeping unknowns as prefixed aux columns (pollutes the specced frame),
+   hard error (a firmware update adding one junk column would break
+   ingestion).
+2. **`maccor_txt_one`'s `Watt-hr` maps to charge energy.** The configuration
+   double-claimed it for `power_txt` and `charge_energy_txt`; a Watt-hour
+   column is dimensionally energy, so the power mapping was a slip. With
+   cellpycore 0.2.3's native energy columns it derives to
+   `cumulative_charge_energy`. Visible on the legacy path too (raw column
+   renamed `power` → `charge_energy`); golden regenerated.
+
+The port itself (tiers 1–2, `LegacyLoaderAdapter` removal) remains — this
+section only fixes the ground it stands on.
+
 ## 3. Migration steps
 
 | Step | Content | Depends on |
