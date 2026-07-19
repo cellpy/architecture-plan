@@ -17,6 +17,46 @@ inside this repo).
 
 ---
 
+## Implementation record (2026-07-19, cellpy#592)
+
+Click → Typer landed. All 8 commands plus the `setup migrate` subcommand
+re-spelled with Typer annotations on top of `cli_api`; 250 `click.echo` calls
+became `typer.echo` (the same function); `click` removed from `pyproject.toml`
+and from all four packaging manifests (it now arrives inside typer).
+
+**The surface came through unchanged.** The snapshot recorded from the Click
+implementation beforehand (`tests/data/cli_surface.json`, 8 commands and 52
+parameters, with kinds, flag-ness, `required`, `multiple` and subcommands)
+matched the Typer app exactly, with the single intended exception of the new
+`--to`.
+
+**Worth remembering: the oracle itself had a bug that only the framework change
+could expose.** `dev/snapshot_cli_surface.py` classified parameters with
+`isinstance(param, click.Argument)` and groups with `isinstance(command,
+click.Group)` against the *installed* `click`. Typer vendors its own Click as
+`typer._click`, so under Typer both checks returned `False` — every argument
+would have been recorded as an option, every group as a leaf command, and the
+snapshot would have "passed" the migration while describing the CLI wrongly.
+Now duck-typed on `param_type_name` and the presence of `.commands`, with a
+dedicated argument-vs-option test. The general lesson for any cross-framework
+oracle: **assert on the duck, not on the class.**
+
+**`cellpy convert --to` shipped with it.** v9 (zip-of-parquet `.cellpy`) has
+been `CellpyCell.save`'s default since the format landed, but `convert` still
+wrote v8 HDF5 — the "bring my old file up to date" command did not produce the
+current format. It now defaults to v9 and infers v8 from a `.h5`/`.hdf5`
+destination, the same rule `CellpyCell.save` uses. The inference is load-bearing:
+without it `cellpy convert old.h5 new.h5` writes a zip into a file named `.h5`.
+
+**Two deliberate user-visible changes**, both recorded on cellpy#572:
+
+1. `convert` defaults to v9 instead of v8.
+2. Help output is rich-formatted (boxes, colour) rather than Click's plain
+   text. No flag or command name changed, but anything scraping `--help` sees
+   different formatting — and CLI tests that assert on help text now pin
+   `NO_COLOR`, because rich splits `--help` with ANSI codes when colour is on.
+
+
 ## 1. Where the CLI lives today
 
 One file, **`cellpy/cli.py` (~2 165 lines)**, Click-based, registered as
