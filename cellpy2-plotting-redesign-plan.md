@@ -340,6 +340,78 @@ contract).
 
 ---
 
+## 5b. Implementation record (2026-07-19)
+
+**Phases 0 and 1 landed** (cellpy#593, cellpy#595). Phases 2–4 remain.
+
+### Maintainer decisions taken (§7 Q1–Q3)
+
+1. **Package path: `cellpy.plotting`** (proposed option), with
+   `cellpy.utils.plotutils` kept importable as a permanent re-export.
+2. **Bokeh is dead**, and goes with `batch_plotters`.
+3. **Seaborn becomes styling inside the matplotlib backend**, not a third
+   backend. Static `summary_plot` output will change rendering engine; that is
+   accepted and is a release-note item. Applies from Phase 2.
+
+Q4 (`register_family` public vs provisional) and Q5 (`cycle_info_plot`
+multi-cycle) are still open — they only bite from Phase 2 on.
+
+### Phase 0 — what the golden set actually found
+
+The plan budgeted ½–1 day for "render the menu and assert on structure". The
+harness itself was cheap; what it uncovered was not.
+
+**Plotting had no CI coverage whatsoever.** The one plotting test file in the
+repo was excluded from *every* workflow with the comment "plotutils summary
+plot needs a display". That was stale — the file selects the Agg backend
+itself and runs headless. 46 of its 47 tests passed the moment they were run;
+the 47th was a real failure. The other plot families had no tests at all.
+
+Four regressions were hiding behind that, all from the native-headers flip:
+
+1. **`raw_plot` and `cycle_info_plot` were completely broken** on any cellpy 2
+   cell (`KeyError: 'voltage'`) — two of the four headline plot functions,
+   with no workaround. Cause: `_hdr_raw = get_headers_normal()` and siblings,
+   module-level header singletons built at import time that always answered
+   with *legacy* names regardless of the cell. Replaced by
+   `_LiveHeaders(cell, frame)`.
+2. `summary_plot(c, x="cycle_index")` — the spelling in the module's own
+   docstrings — raised `KeyError`.
+3. **Plotting mutated the user's cell.** `partition_summary_cv_steps` did
+   `set_index(..., inplace=True)` on `c.data.summary` itself, so one CV-split
+   plot permanently removed the cycle column.
+4. `cycle_info_plot` also read hard-coded legacy step-table column names.
+
+**Lesson for the remaining phases:** the §1.1 "verified copies" list was
+accurate, but the *reason* the duplication was dangerous turned out not to be
+drift between the copies — it was that nothing exercised any of them. Phase 2
+should not start from "the code is duplicated" but from "the code is
+unobserved"; the golden set is now the observation.
+
+The oracle records 53 figures structurally (trace counts, names, axis
+assignment, series endpoints, axis titles). Mutation-checked: turning the
+formation split off turns 46 of 56 red.
+
+### Phase 1 — what consolidation actually turned up
+
+Two of the "copies" were not copies, and the differences mattered:
+
+- `load_plotly_figure`: plotutils' guarded plotly's absence, collectors' did
+  not. Kept the guard.
+- `legend_replacer`: batch_plotters' carried an `inverted_mode` the other two
+  lack. That copy is the superset and is the one that moved.
+
+Also fixed: `import cellpy.utils.collectors` raised `NameError: 'go'` without
+the `batch` extra, because four `go.layout.Template(...)` calls ran at module
+level. Templates are built lazily in `theme.py` now, guarded by an AST test.
+
+**Sizing note.** Phase 1 is line-count-neutral (277 lines out of the old
+modules, 363 into the package, the difference being docstrings the copies
+never had). The §4 sizing table's reduction is all in Phases 2–4; do not read
+Phase 1 as progress against it.
+
+---
+
 ## 6. Risks
 
 | Risk | Mitigation |
