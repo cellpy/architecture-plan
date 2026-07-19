@@ -334,8 +334,16 @@ uses pandas' 1e-5 default. Anything tighter tests the BLAS.
 5. Should `transform_half_cycle` be public API (recommended: it is the
    honest replacement for `dqdv_np` power users), or private?
 
-6. **NEW — which way round is `direction`?** (Blocking the collectors half of
-   Phase 3.) The specced frame spells direction out as `"charge"` /
+6. ~~**NEW — which way round is `direction`?**~~ — **resolved (decision,
+   2026-07-20, maintainer, cellpy#591/#598): cell-centric.** "charge" means
+   the *cell* charging, agreeing with `get_ccap`/`get_dcap` and the summary
+   columns; the electrode-centric reading is derived by swapping labels when
+   `cycle_mode == "anode"`. `ica_collector` is on the specced frame;
+   `_select_direction` handles both encodings the plotters see; anode film
+   plot labels flipped once (release-noted). Original question kept below
+   for the record.
+
+   The specced frame spells direction out as `"charge"` /
    `"discharge"`, which forces a decision 1.x never had to make because it
    handed back the raw ±1 code.
 
@@ -361,6 +369,6 @@ uses pandas' 1e-5 default. Anything tighter tests the BLAS.
    - **(c)** carry both — a `direction` (cell) and an `electrode_direction`
      column — and let the plotter choose.
 
-   Until this is settled `collectors.ica_collector` deliberately still builds
-   the 1.x frame, through the private `_dqdv_combined_frame` so that no
-   DeprecationWarning fires at users from inside a collector.
+   (Historical note — before the resolution, `collectors.ica_collector`
+   deliberately stayed on the 1.x frame through the private
+   `_dqdv_combined_frame`.)
