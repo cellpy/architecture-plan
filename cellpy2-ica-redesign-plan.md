@@ -273,6 +273,49 @@ Total: **~3.5–4.5 days**, consistent with the utils plan's wave-3 budget
 
 ---
 
+## 5b. Implementation record (2026-07-19, cellpy#590)
+
+Landed as one arc rather than four phases; Phase 3 (consumers) is partly
+deferred, see below.
+
+**What shipped.** `cellpy/ica.py` (~1 650 lines including the deprecated 1.x
+surface; the new core alone is ~550, in line with the estimate).
+`IcaOptions` + `GaussianOptions`, the pure `transform_half_cycle`,
+`dqdv`/`dvdq` with three source kinds, `IcaCols`/`ICA_COLS`, `to_wide`.
+`cellpy.utils.ica` is now a re-export shim.
+
+**The port was faithful.** The 1.x entry points were *reimplemented on the new
+core* rather than kept as a second copy of the math, which is what makes the
+Phase 0 oracles worth having: all eight suites reproduce, byte-identically on
+one machine (`regenerate_goldens.py --verify`) and to ~1e-5 relative across
+platforms. The split path and the wide MultiIndex path included.
+
+**Two tolerance mistakes worth remembering** (CI caught both). The metrics
+file rounds column sums for readability, and the first version compared them
+with `==` — rounding does not make a float portable, and Linux produced
+`122.614595` against a Windows golden of `122.614594`. The second attempt
+tightened the *frame* comparison to `rtol=1e-8`, reasoning from how much the
+sums had moved; sums average errors out and individual values do not, so all
+16 went red. Measured spread between Windows and Linux on this data is
+**1e-7 to 5e-7 relative** (scipy interpolation/filtering), so the comparison
+uses pandas' 1e-5 default. Anything tighter tests the BLAS.
+
+**Decisions taken on §6.**
+
+1. **`dq` → `dqdv`: renamed, with the old name kept as a duplicate column**
+   for one release (as recommended). Registered in `DEPRECATIONS.md`.
+2. **`hist`/binning: quarantined, not yet deleted.** `IcaOptions` rejects
+   `increment_method="hist"` with a message pointing here; the branch survives
+   only inside the deprecated `Converter`, so the 1.x test that exercises it
+   still runs. **Still needs a call for 2.1: finish it or delete it.**
+3. **`normalize="nom_cap"`: deferred.** `normalizing_roof` remains as the
+   plumbing hook, so promoting it later is small.
+4. **Full-cell dQ/dV and dV/dQ: deferred**, as a feature on top of the specced
+   frame.
+5. **`transform_half_cycle` is public**, as recommended.
+
+**New question, and the reason Phase 3 is only half done — see §6.6.**
+
 ## 6. Open questions for the maintainer
 
 1. **Column rename `dq` → `dqdv`** in the specced frame — worth the
@@ -290,3 +333,34 @@ Total: **~3.5–4.5 days**, consistent with the utils plan's wave-3 budget
    natural later extension on top of the specced frame.
 5. Should `transform_half_cycle` be public API (recommended: it is the
    honest replacement for `dqdv_np` power users), or private?
+
+6. **NEW — which way round is `direction`?** (Blocking the collectors half of
+   Phase 3.) The specced frame spells direction out as `"charge"` /
+   `"discharge"`, which forces a decision 1.x never had to make because it
+   handed back the raw ±1 code.
+
+   `get_cap(categorical_column=True)` gives **-1 to the first half-cycle**.
+   For cellpy's default `cycle_mode="anode"` the first half-cycle is `get_dcap`
+   — the **cell discharge** (`capacity_curves.py:337–345`). So the frame
+   currently labels -1 as `"discharge"`, matching the `get_ccap`/`get_dcap`
+   naming it came from.
+
+   But `collectors.ica_plotter` selects `direction < 0` and titles it
+   **"charge"** (`collectors.py:2136–2140`) — the electrode-centric reading,
+   in which lithiating the anode is "charging the electrode" even though the
+   cell is discharging.
+
+   Both are defensible and both are in the codebase today. Whichever we adopt,
+   the other set of plots gets relabelled, so this is a domain call rather than
+   a refactor:
+
+   - **(a)** cell-centric (current frame behaviour): -1 is `"discharge"` for
+     an anode cell. Then `ica_plotter`'s labels flip.
+   - **(b)** electrode-centric: -1 is `"charge"` regardless of `cycle_mode`.
+     Then the frame stops agreeing with `get_ccap`/`get_dcap`.
+   - **(c)** carry both — a `direction` (cell) and an `electrode_direction`
+     column — and let the plotter choose.
+
+   Until this is settled `collectors.ica_collector` deliberately still builds
+   the 1.x frame, through the private `_dqdv_combined_frame` so that no
+   DeprecationWarning fires at users from inside a collector.
