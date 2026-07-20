@@ -91,6 +91,17 @@ notes and `pyproject.toml` review have one checklist): **out** — python-box, r
 polars (via core), pyarrow/parquet. pandas stays (plot/Excel boundaries) — removing
 it is explicitly *not* a 2.0 goal.
 
+**Executed (2026-07-20, cellpy#570/#597).** All four "out" items landed:
+python-box → a 20-line `AttrDict` in `prms.py`; ruamel.yaml → PyYAML (every
+call site was plain load/dump — the "post-migration window" caveat turned out
+moot because custom-instrument YAML is a *live* feature, so the swap, not the
+drop, was the right move); python-dotenv undeclared (guaranteed transitively
+by pydantic-settings, with a test on the guarantor); tables behind the
+`legacy-files` extra with a typed `OptionalDependencyError` naming the extra
+(and kept in the dev group, since the test suite reads v8 fixtures
+throughout). Verified in `uv.lock`: none of the four in the required closure.
+Conda keeps pytables (no extras mechanism there).
+
 ## 6. Trailing: docs and CLI (G11)
 
 Not release-blocking; owned by dedicated plans (written 2026-07-17):

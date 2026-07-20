@@ -18,6 +18,27 @@ Step 7 (generated config docs), [CLI plan](cellpy2-cli-redesign-plan.md)
 
 ---
 
+## Implementation record (2026-07-19, cellpy#571/#589)
+
+Sphinx → Zensical landed. `zensical.toml` with the researcher-first nav
+(Getting started / Tutorials / How-to / Concepts / Reference / Development);
+mkdocstrings/Griffe API pages replacing 14 hand-written RST stubs (static
+analysis — the RTD build installs only zensical + mkdocstrings-python, not
+cellpy); `.readthedocs.yaml` on `build.jobs`; a dedicated docs CI workflow
+whose link check matches the issue *count* (a bare "issues found" grep also
+matches "No issues found" — it failed its own clean build first).
+
+Notebook rendering: a straight nbconvert produced ~50 MB of markdown because
+plotly embeds a self-contained HTML+JS blob per figure;
+`dev/render_example_notebooks.py` strips the interactive payloads and keeps
+the static PNGs (148 KB committed). It renders the outputs the notebooks
+already carry — it does **not** execute them, so "the docs build" is not
+quietly standing in for "the tutorials run"; executing them is separate work.
+
+Local build: 51 pages, no issues. Post-#571 additions ride the same rails
+(api/ica.md in #590, api/plotting.md in #595).
+
+
 ## 1. Where documentation lives today
 
 ### 1.1 Tooling

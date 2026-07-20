@@ -12,6 +12,13 @@ Earlier records: [stage0-github-issues.md](stage0-github-issues.md) (tracking
 [stage1-github-issues.md](stage1-github-issues.md) (tracking
 [#459](https://github.com/jepegit/cellpy/issues/459)).
 
+> **Live status:** this document is the point-in-time record of the issue
+> set and its scope decision. Progress is tracked in one place only — the
+> status dashboard in
+> [cellpy2-architecture-plan.md](cellpy2-architecture-plan.md) (Stage 3 row)
+> and the `v2.0.0` milestone on GitHub. Per-arc implementation records live
+> in each owning plan document.
+
 ## Scope decision (2026-07-19) — what is in 2.0 and what waits for 2.1
 
 **The test:** 2.0 finalizes what **cannot be shimmed** — frame schemas, the header API,
