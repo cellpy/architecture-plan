@@ -204,7 +204,7 @@ live `config_params`, and compares **values** rather than column names.
 | `cumulate_capacity_within_cycle` | **`ResetGranularity.PER_STEP`** — derived, see below |
 | `convert_step_time_to_timedelta` / `convert_test_time_to_timedelta` | **`duration_columns`** — new framework feature |
 | `split_capacity` / `split_current` | shared `hooks.state_splitter` — **ported** |
-| `set_cycle_number_not_zero` | needs a decision: hook, or accept 0-based cycles — **not yet ported** |
+| `set_cycle_number_not_zero` | `hooks.cycle_number_not_zero` — **ported**, see the decision below |
 | `remove_last_if_bad` | vendor post hook — **not yet ported** |
 | `update_headers_with_units` | neware-specific header spelling; folds into the declaration — **not yet ported** |
 
@@ -276,6 +276,27 @@ claimed to reproduce `_state_splitter`. The in-tree Maccor fixtures contain no
 charge–rest–charge pattern within a cycle, so the divergence never showed. The
 pilot now uses the shared splitter, so there is one state-splitting semantics
 in the tree rather than two.
+
+**Decision (2026-07-20, maintainer): 2.0 keeps 1-based cycle numbering.**
+`set_cycle_number_not_zero` adds 1 to every cycle when the vendor's minimum is
+0, and three Maccor dialects run it. Whether cycles start at 0 or 1 is a
+user-visible contract — it reaches summary indices, plot axes and
+`get_cap(cycle=N)` — so the port reproduces 1.x rather than adopting the
+vendor's own numbering. Rejected alternative: accept vendor numbering as more
+honest to the file, which is defensible but is a breaking change with no
+forcing reason to take it now. Unlike the frame schemas this one **can** be
+shimmed, so revisiting it in 2.1 stays open.
+
+Its quirk is reproduced too: the shift applies only when the minimum is
+*exactly* 0, so a file whose cycles start at 2 keeps starting at 2 rather than
+being rebased to 1. The hook raises on a non-numeric cycle column instead of
+silently doing nothing, since a string column would compare unequal to 0 and
+leave every cycle index off by one with nothing to show for it.
+
+**Parity status after this pass: the oracle's unported-post-processor exception
+list is empty.** Both tier-1 loaders match the legacy path on every shared
+column; the only remaining exclusion is the `date_time` representation gap
+below.
 
 **Still open: `date_time`.** It survives as a passthrough string while the
 native schema has no column for it, where the legacy path parsed it to datetime;
