@@ -185,6 +185,75 @@ section only fixes the ground it stands on.
 - **`local_instrument` — confirmed** as one of the two sanctioned warn-only
   escape hatches (conventions plan §4); no change.
 
+### 2.7 The post-processor map, and what the value oracle found (2026-07-20, cellpy#560)
+
+The switchover replaces the legacy `post_processors` chain with `harmonize()`.
+Every post-processor therefore needs a verdict. Establishing them is what the
+value-parity oracle (`tests/test_loader_port_parity.py`) is for: it drives one
+`cellpy.get()` per case with `query_file` wrapped, so the same run yields the
+vendor frame *and* the legacy frame, derives declarations from the loader's
+live `config_params`, and compares **values** rather than column names.
+
+| Legacy post-processor | Verdict |
+|---|---|
+| `rename_headers` | `column_map` |
+| `_convert_units` | `raw_units` |
+| `select_columns_to_keep` | the harmonize select |
+| `set_index` | n/a — polars frames carry no index |
+| `convert_date_time_to_datetime` | `_convert_timestamps` (but see `date_time` below) |
+| `cumulate_capacity_within_cycle` | **`ResetGranularity.PER_STEP`** — derived, see below |
+| `convert_step_time_to_timedelta` / `convert_test_time_to_timedelta` | **`duration_columns`** — new framework feature |
+| `split_capacity` / `split_current` | vendor post hook (the #559 pilot shows the shape) — **not yet ported** |
+| `set_cycle_number_not_zero` | needs a decision: hook, or accept 0-based cycles — **not yet ported** |
+| `remove_last_if_bad` | vendor post hook — **not yet ported** |
+| `update_headers_with_units` | neware-specific header spelling; folds into the declaration — **not yet ported** |
+
+Two of these were found by the oracle rather than by reading, and both are the
+kind that produce wrong numbers instead of errors. **Neither reached users:**
+`declarations_from_configuration` has no production callers and `harmonize()`
+is reached only by the `maccor_txt_native` pilot, so ingestion still runs the
+legacy chain, which handles both cases correctly. The numbers below are diffs
+against that legacy oracle — regressions the flag day would have introduced,
+caught while the path was still behind a flag. Nothing needs re-loading.
+
+1. **`cumulate_capacity_within_cycle` *is* `PER_STEP`.** It offsets each step by
+   the running total of the cycle's completed steps — precisely what `PER_STEP`
+   normalization undoes. Nothing said so, and the derivation defaulted every
+   cumulative column to `PER_CYCLE`, so neware capacities came out wrong by up
+   to 8 mAh against the legacy frame. The granularity is now **read from the
+   configuration's `post_processors`** instead of defaulted: the configuration
+   already knew, we were just not asking it.
+2. **Duration strings silently became null columns.** Neware writes `Time` and
+   `Cumulative Time` as `"00:01:00"`; the schema dtype for `step_time`/
+   `test_time` is Float64; `_cast_to_schema` cast non-strictly, so all 9065 rows
+   became null with no error. Fixed two ways — a declared `duration_columns`
+   conversion (also derived, from the `convert_*_to_timedelta` flags), and a
+   guard in `_cast_to_schema` that **raises when a cast empties a column
+   entirely** while still tolerating stray junk rows with a warning. Partial
+   tolerance is deliberate: the legacy path used
+   `pd.to_numeric(errors="coerce")`, and making stray values fatal would refuse
+   files 1.x loaded.
+
+The second is the same failure shape as [#580](https://github.com/jepegit/cellpy/issues/580)
+(Maccor zero capacities): a silent data-destroying step on the ingestion path.
+The difference is only timing — #580 shipped, this was caught before the path
+went live. It is worth stating as a rule for the rest of the port — **on the
+ingestion path, a step that can destroy data must not be able to do it
+quietly.**
+
+**Status after this pass.** `neware_txt` reaches exact value parity on all 14
+comparable columns. `maccor_txt` reaches parity on everything except the three
+columns owned by the unported hooks above (`current`, the capacities, and
+`cycle_num`). The oracle's exception list is derived from each configuration's
+own `post_processors`, so deleting a row from the table above tightens the test
+automatically — no column is ever excused silently.
+
+**Still open: `date_time`.** It survives as a passthrough string while the
+native schema has no column for it, where the legacy path parsed it to datetime;
+`epoch_time_utc` is not produced by either tier-1 configuration. This is a
+metadata-arc question (#562/#563), not a capacity one, but it must be settled
+before the flag day.
+
 ## 3. Migration steps
 
 | Step | Content | Depends on |
