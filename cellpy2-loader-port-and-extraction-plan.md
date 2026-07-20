@@ -204,9 +204,10 @@ live `config_params`, and compares **values** rather than column names.
 | `cumulate_capacity_within_cycle` | **`ResetGranularity.PER_STEP`** — derived, see below |
 | `convert_step_time_to_timedelta` / `convert_test_time_to_timedelta` | **`duration_columns`** — new framework feature |
 | `split_capacity` / `split_current` | shared `hooks.state_splitter` — **ported** |
+| `remove_last_if_bad` | `hooks.drop_last_row_if_worse` — **ported** |
+| `update_headers_with_units` | resolved in the derivation, not a hook — **ported**, see below |
 | `set_cycle_number_not_zero` | `hooks.cycle_number_not_zero` — **ported**, see the decision below |
 | `remove_last_if_bad` | vendor post hook — **not yet ported** |
-| `update_headers_with_units` | neware-specific header spelling; folds into the declaration — **not yet ported** |
 
 Two of these were found by the oracle rather than by reading, and both are the
 kind that produce wrong numbers instead of errors. **Neither reached users:**
@@ -297,6 +298,52 @@ leave every cycle index off by one with nothing to show for it.
 list is empty.** Both tier-1 loaders match the legacy path on every shared
 column; the only remaining exclusion is the `date_time` representation gap
 below.
+
+**`update_headers_with_units` is not a post hook — and it exposed an
+order-dependence (2026-07-20, third pass).** Neware spells its columns with the
+unit baked in (`Current({{ current }})` → `Current(A)`), and the legacy
+post-processor resolved those placeholders by **mutating `config_params` in
+place at load time**. The mutation does not reach the configuration *module*,
+because `ModelParameters` carries its own copy. So the derivation gave two
+different answers for the same configuration:
+
+| Derived from | Result |
+|---|---|
+| a post-load `config_params` | correct vendor names |
+| the configuration module | **seven** names left as `Current({{ current }})`, matching no file, silently unmapped |
+
+`test_derived_declarations` derives from modules, so it had been checking seven
+fewer neware columns than it appeared to. Substitution now happens inside the
+derivation, which makes it self-contained and order-independent, and a missing
+unit label raises instead of interpolating the string `"None"` into an
+unmatchable column name.
+
+**Consequence worth carrying into the flag day: neware declarations cannot be
+static.** The units are read *from the file* — the shipped configuration
+defaults to `mA`/`mAh`, while `neware_uio.csv` is in `A`/`Ah`, and the loader
+updates `raw_units` at load time to match. So the vendor column names, and
+therefore the `column_map` keys, depend on the file being read. A
+`LoaderDeclarations` frozen at class level cannot express that; for neware the
+declarations must be built per file, after the header is parsed. This does not
+block anything yet, but it shapes where `declarations` lives once `parse()`
+implementations land.
+
+**`remove_last_if_bad` — the denominator matters.** The legacy post-processor
+ran after `rename_headers` **and** `select_columns_to_keep`, so it counted
+missing values over the columns cellpy keeps. Hooks run before renaming, so the
+derivation passes the declared vendor columns explicitly; counting over every
+vendor column instead would let undeclared junk decide whether a real
+measurement survives. It is the only shipped post-processor that changes the
+row count. `maccor_002.txt` (added as a third parity case — it was in
+`testdata` but no test loaded it) exercises the configuration but does **not**
+trigger the drop, so the rule itself is pinned by hand-computed unit tests
+while the parity case confirms it does not fire wrongly.
+
+**A dtype normalization worth a release note.** Maccor model two leaves
+`cumulative_charge_energy` as *strings* (`'0.00000000'`) on the legacy path;
+harmonize casts it to Float64. Values verified identical (max abs diff 0.0,
+every value coercible), so this is a representation improvement rather than a
+change of numbers — users get a numeric column where 1.x gave text.
 
 **Still open: `date_time`.** It survives as a passthrough string while the
 native schema has no column for it, where the legacy path parsed it to datetime;
