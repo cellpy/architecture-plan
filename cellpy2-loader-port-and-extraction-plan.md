@@ -226,6 +226,29 @@ Verification is unchanged: `pec_csv` has no config-driven path, so the frame
 `loader()` produces today *is* the oracle, and the existing `loader_pec_csv`
 golden pins it.
 
+**Execution (2026-07-21).** `parse()` and `declarations()` landed as decided;
+`loader()` is untouched. Two things worth recording:
+
+- The canonical→native map is **not hand-transcribed** — `declarations()`
+  reuses `derive_column_maps` by inverting `_COLUMN_KEY_TO_CELLPY_HEADER`
+  (canonical → legacy attr) and composing it with cellpy-core's legacy→native
+  map. So `pec_csv` gets the provenance rule (`test` dropped, not mapped onto
+  the framework `test_id`) and the 0.2.3 energy mapping for free, from the same
+  code the config loaders use. Only the *passthrough* set is per file: whatever
+  non-canonical columns the export carried, kept under their sanitised names,
+  matching what `loader()` preserves.
+- Building it surfaced a **false negative in the parity oracle**, not a pec
+  bug: pec carries several sparse per-measurement columns that are all-null in
+  this fixture (`cell_id`, `station_temperature_degc`, the DC/AC internal
+  resistances). The numeric diff of two all-null columns is `None`, which the
+  oracle had been counting as a mismatch. Worse, it would equally have hidden a
+  real values-vs-null difference. The comparison now checks the null masks
+  first, then the non-null values — so an all-null-vs-all-null column agrees,
+  and a populated-vs-null column is caught. Mutation-checked both ways.
+
+pec reaches value parity on every mapped and passthrough column; the only
+excluded column is the shared `date_time` representation gap.
+
 ### 2.7 The post-processor map, and what the value oracle found (2026-07-20, cellpy#560)
 
 The switchover replaces the legacy `post_processors` chain with `harmonize()`.
