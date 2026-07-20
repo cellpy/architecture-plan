@@ -203,7 +203,7 @@ live `config_params`, and compares **values** rather than column names.
 | `convert_date_time_to_datetime` | `_convert_timestamps` (but see `date_time` below) |
 | `cumulate_capacity_within_cycle` | **`ResetGranularity.PER_STEP`** — derived, see below |
 | `convert_step_time_to_timedelta` / `convert_test_time_to_timedelta` | **`duration_columns`** — new framework feature |
-| `split_capacity` / `split_current` | vendor post hook (the #559 pilot shows the shape) — **not yet ported** |
+| `split_capacity` / `split_current` | shared `hooks.state_splitter` — **ported** |
 | `set_cycle_number_not_zero` | needs a decision: hook, or accept 0-based cycles — **not yet ported** |
 | `remove_last_if_bad` | vendor post hook — **not yet ported** |
 | `update_headers_with_units` | neware-specific header spelling; folds into the declaration — **not yet ported** |
@@ -247,6 +247,35 @@ columns owned by the unported hooks above (`current`, the capacities, and
 `cycle_num`). The oracle's exception list is derived from each configuration's
 own `post_processors`, so deleting a row from the table above tightens the test
 automatically — no column is ever excused silently.
+
+**State splitting (2026-07-20, second pass).** `split_capacity` and
+`split_current` are now the shared `hooks.state_splitter`, and `maccor_txt`
+reaches value parity on `current` and both capacities. Three things the port
+had to settle, all recorded because they are invisible from the code:
+
+- **`split_capacity` changes the *shape* of the mapping**, not just values: one
+  vendor column becomes two native ones. So the derivation drops the direct
+  mapping, the hook synthesises two vendor-side columns, and those are mapped
+  instead. It is the only post-processor that does this.
+- **The split supersedes a competing direct mapping.** `maccor_txt_one` also
+  declares a `Discharge_Capacity(Ah)` column (under a "not observed yet"
+  comment). In 1.x `split_capacity` runs in the *unordered* pass — after
+  `rename_headers` — so it overwrote whatever the rename produced. The
+  derivation reproduces that precedence; without it the declarations fail
+  validation for mapping two vendor columns onto one native column.
+- **`propagate` is not a forward fill.** A direction's rows carry their own
+  value, rows *after* that direction's last row in the cycle carry its final
+  value, and everything else — including a rest *between* two same-direction
+  rows — is zero. A forward fill would fill that middle rest. Physically the
+  fill is arguably better; it is not what 1.x produced, so the port reproduces
+  the quirk and pins it with a hand-computed test.
+
+That last point caught a latent bug in the **#559 pilot**: its own
+`split_capacity_by_state` was built on `forward_fill()` while its docstring
+claimed to reproduce `_state_splitter`. The in-tree Maccor fixtures contain no
+charge–rest–charge pattern within a cycle, so the divergence never showed. The
+pilot now uses the shared splitter, so there is one state-splitting semantics
+in the tree rather than two.
 
 **Still open: `date_time`.** It survives as a passthrough string while the
 native schema has no column for it, where the legacy path parsed it to datetime;
