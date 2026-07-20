@@ -172,6 +172,19 @@ rules:
 The port itself (tiers 1–2, `LegacyLoaderAdapter` removal) remains — this
 section only fixes the ground it stands on.
 
+### 2.6 Tier-3 execution record (2026-07-20, cellpy#561/#600)
+
+- **`ext_nda_reader` — parked.** Its load path called a `load_nda()` stub that
+  printed its arguments and returned `None`, so a "successful" load produced
+  an empty cell; it also claimed `instrument_name = "neware_nda"`, colliding
+  with the real fastnda-backed loader. Selecting it now raises a typed
+  `LoaderError` naming the replacement (`instrument="neware_nda"`); removal
+  in 2.1 unless users object.
+- **`biologics_mpr`, `batmo_bdf` — port** (decision stands); executes with
+  the tier-1/2 arc.
+- **`local_instrument` — confirmed** as one of the two sanctioned warn-only
+  escape hatches (conventions plan §4); no change.
+
 ## 3. Migration steps
 
 | Step | Content | Depends on |
