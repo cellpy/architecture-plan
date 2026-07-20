@@ -185,6 +185,47 @@ section only fixes the ground it stands on.
 - **`local_instrument` — confirmed** as one of the two sanctioned warn-only
   escape hatches (conventions plan §4); no change.
 
+### 2.6a `pec_csv` two-stage decisions (2026-07-20, maintainer)
+
+`pec_csv` is not configuration-driven, so its declarations cannot be *derived*
+— they are hand-written. It differs from the config loaders in three ways that
+forced explicit calls:
+
+- It is a `BaseLoader` (no `config_params`, no renaming dict).
+- Columns are identified by **alias set** (`_HEADER_ALIASES`), not a fixed
+  vendor string: one semantic name matches many possible spellings.
+- **Units are per column, embedded in the header** — `Voltage (V)` vs `(mV)`,
+  four time formats — and scaled per column. `harmonize()` has no per-column
+  unit scaling (it carries one `raw_units` for the whole frame), so leaving
+  this to harmonize would tag mixed mV/V as V: silent corruption, the same bug
+  class this arc keeps closing.
+
+Decisions:
+
+1. **Per-column unit scaling stays in `parse()`.** The vendor stage normalizes
+   every column to the canonical unit, so the frame handed to `harmonize()` is
+   uniform. Rejected: teaching `harmonize()` per-column source units — a large
+   change to the shared path for one loader, unjustified until a second needs
+   it.
+2. **`parse()` renames matched columns to canonical semantic names**
+   (`voltage`, `current`, …) and **`declarations()` is a static
+   `{canonical → native}` map.** This puts `pec_csv` on the same footing as the
+   config loaders — static declarations, `harmonize()` untouched — and collapses
+   the three parallel alias/unit/header dicts toward one. Rejected: building
+   declarations per file from the matched headers (workable, but keeps a
+   per-file map for no gain now that units are already normalized in `parse()`).
+3. **Keep `BaseLoader`; give `pec_csv` its own `parse()`/`declarations()`.**
+   Reparenting to `AutoLoader` fights the alias design and buys nothing — pec's
+   preamble sniffing and header matching are genuinely bespoke.
+4. **Metadata parked.** `test_id`, `test_regime_name`, `lot_id` and the LotID
+   multi-file grouping go to the metadata arc (#562/#563), like `date_time`.
+5. **Cycle 0→1 shift kept** (it is inline today), routed through the shared
+   `hooks.cycle_number_not_zero` for one implementation.
+
+Verification is unchanged: `pec_csv` has no config-driven path, so the frame
+`loader()` produces today *is* the oracle, and the existing `loader_pec_csv`
+golden pins it.
+
 ### 2.7 The post-processor map, and what the value oracle found (2026-07-20, cellpy#560)
 
 The switchover replaces the legacy `post_processors` chain with `harmonize()`.
