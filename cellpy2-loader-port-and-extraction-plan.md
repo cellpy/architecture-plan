@@ -318,15 +318,33 @@ derivation, which makes it self-contained and order-independent, and a missing
 unit label raises instead of interpolating the string `"None"` into an
 unmatchable column name.
 
-**Consequence worth carrying into the flag day: neware declarations cannot be
-static.** The units are read *from the file* — the shipped configuration
-defaults to `mA`/`mAh`, while `neware_uio.csv` is in `A`/`Ah`, and the loader
-updates `raw_units` at load time to match. So the vendor column names, and
-therefore the `column_map` keys, depend on the file being read. A
-`LoaderDeclarations` frozen at class level cannot express that; for neware the
-declarations must be built per file, after the header is parsed. This does not
-block anything yet, but it shapes where `declarations` lives once `parse()`
-implementations land.
+**Consequence: neware declarations cannot be static — resolved by making
+`declarations()` a method (2026-07-20, fourth pass).** The units are read *from
+the file* — the shipped configuration defaults to `mA`/`mAh`, while
+`neware_uio.csv` is in `A`/`Ah`, and the loader updates `raw_units` at load time
+to match. So the vendor column names, and therefore the `column_map` keys,
+depend on the file being read; a `LoaderDeclarations` frozen at class level
+cannot express that.
+
+`AutoLoader` now exposes the two stages directly:
+
+- **`parse(source, **kwargs)`** — the vendor stage, i.e. what `loader()`
+  already did before it started building a `Data` (pre-processors, formatter
+  parameters, `query_file`), exposed on its own.
+- **`declarations()`** — derived from `config_params` *after* the parse, which
+  is what makes it per-file with no loader having to opt in. It **raises if
+  called before `parse()`**: reading it first would hand back vendor names no
+  file contains, and those columns would be silently unmapped rather than
+  erroring.
+
+**This is not a change to the #210 Protocol, and 2.0 does not freeze it.**
+`InstrumentLoader` requires `can_load` and `load` plus the three capability
+attributes; `check_loader` checks those, the result types, the raw frame, units,
+the meta draft and determinism. Neither `parse` nor `declarations` appears in
+either. The two-stage split lives entirely behind `load()`, so it stays free to
+change in 2.1 — worth stating plainly because the sequencing constraints
+(§5.6 / the #560 issue) make "settle it before the Protocol freezes" the default
+assumption for anything loader-shaped, and here that assumption does not apply.
 
 **`remove_last_if_bad` — the denominator matters.** The legacy post-processor
 ran after `rename_headers` **and** `select_columns_to_keep`, so it counted
