@@ -80,7 +80,7 @@ happens to the data in those columns. Policy, per class:
 
 | Legacy-only column(s) | Import policy |
 |---|---|
-| raw `date_time` | **Convert**, don't carry: derive `epoch_time_utc` (int64 ns UTC) via `cellpycore.timestamps`; keep `date_time` as a passthrough extra column for one release, then drop. Naive legacy datetimes: **local TZ of the conversion host**, **warn**, record assumed zone on `TestMeta.time_zone` (see decision below). |
+| raw `date_time` | **Convert**, don't carry: derive `epoch_time_utc` (int64 ns UTC) via `cellpycore.timestamps`; keep `date_time` as a passthrough extra column for one release, then drop. Naive legacy datetimes: **UTC**, **warn**, record assumed zone on `TestMeta.time_zone` (decision 2026-07-21, #560 — corrected from "local TZ of the conversion host"; see below). |
 | raw `power`, `charge_energy`, `discharge_energy`, `dv_dt`, `sub_step_index/-time`, AC-impedance, `ref_voltage`, `frequency`, `amplitude` | Passthrough unchanged (native schema tolerates extra columns; `validate_raw_frame` warns, doesn't reject). Native cumulative-energy columns are *not* synthesized from legacy energies — different reset semantics (see core issue #42). |
 | steps `info`, `ustep`, `ir_pct_change`, `test` | Passthrough. |
 | summary cruft (`shifted_*`, `cumulated_ric*`, `cumulated_coulombic_efficiency`, `ocv_*`, `normalized_*`, `low/high_level`) | **Drop on import and recompute on demand.** These are derived columns; cellpy 2's summary accessor recomputes them from the native summary when a legacy consumer asks (the bridge's `_add_legacy_summary_cruft` becomes a free function in cellpy 2's summary utilities). Carrying them risks stale values that no longer match the (re-)computed base columns. |
@@ -239,7 +239,7 @@ single Arrow/IPC file with embedded schema metadata.
 
 | Risk | Mitigation |
 |---|---|
-| Timezone semantics of legacy `date_time` → `epoch_time_utc` | **Decided (issue #438):** naive = local + warn + `TestMeta.time_zone`; property-based round-trip test |
+| Timezone semantics of legacy `date_time` → `epoch_time_utc` | **Decided (2026-07-21, #560): naive = UTC** + warn + `TestMeta.time_zone`; property-based round-trip test. This supersedes the earlier #438 note ("naive = local"), which the `harmonize()` code never actually implemented (it always stamped UTC) — so this corrects the plan to match the shipped behaviour and `cellpycore.timestamps`, whose canonical rule is naive = UTC. Rejected "local TZ of the conversion host": it couples a file's absolute times to *where analysis runs*, not where the cycler was. |
 | Summary cruft recompute ≠ stored legacy values (old bugs frozen in files, e.g. the legacy IR semantics) | Recompute-equality tested on goldens; where legacy values are *known wrong* (see `summary-extractors.md`), document the intentional difference instead of reproducing it. Concrete instances now cataloged with verdicts in the [architecture plan §7 delta register](cellpy2-architecture-plan.md) (CE inversion, coulombic sign flip, cv_charge step fix, `discharge_c_rate` engine mismatch) — the Phase-3 #434 comparator carries that named exception list |
 | Users pass legacy column names into cellpy 2 APIs (`x="voltage"`) | Boundary helpers accept legacy names via the mapping for one release, warn, translate |
 | Duplicate-value legacy attrs (`discharge_capacity_raw`) | Shim maps both, warns with disambiguation |
