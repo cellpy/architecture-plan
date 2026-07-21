@@ -553,3 +553,98 @@ configurations must not bake in an assumption that all loaders live in-tree.
 Framework + pilot ≈ 4–5 days; curves module ≈ 3–4 days (incl. spec); tier-1 ≈ 1 day
 per loader; tier-2 ≈ 3–4 days total; tier-3 decisions ≈ 1–2 days. Total ≈ **3–4
 focused weeks**, parallelizable per loader after Step 1.
+
+## 8. The switchover (flag day) — checklist (drafted 2026-07-21)
+
+The two-stage design is built and proven per loader; the switchover is the single
+change that makes it *the* ingestion path — routing `load()` through
+`harmonize(parse(...))` for every loader at once and deleting the transitional
+`to_native()` boundary. It is deliberately one flag day, not a trickle, because
+ingestion is shared: a per-loader trickle would mean two live code paths and a
+doubled oracle for months.
+
+### 8.0 Where things stand
+
+- **Two-stage entry points exist** for: `maccor_txt`, `neware_txt`, `custom`,
+  `local_instrument` (inherited from `AutoLoader`/`TxtLoader`), and `pec_csv`,
+  `arbin_res`, `arbin_sql_h5` (own `parse()`/`declarations()`).
+- **The transitional boundary** is `cellpy_file_translate.to_native()`, called at
+  `cellreader.py` **1368/1462** (from-raw) and **1721/1733** (merge). No
+  `LegacyLoaderAdapter` class remains; `to_native()` *is* the thing to retire.
+- **Value parity** is proven for 7 loaders via `test_loader_port_parity.py` (+ 3
+  synthetic dialects), every column except `date_time`.
+
+### 8.1 Preconditions (must be true before the flag day)
+
+- [ ] **Every loader shipping in 2.0 has `parse()`/`declarations()`.** Gaps today:
+      `arbin_sql`, `arbin_sql_csv`, `arbin_sql_xlsx`, `arbin_sql_7` (no fixtures),
+      `biologics_mpr` (BaseLoader), `neware_nda` (fastnda). **Decision required per
+      loader:** port, or exclude from 2.0 behind a typed `LoaderError` (the
+      `ext_nda` precedent, §2.6). A loader with no `parse()` cannot be routed, so
+      each is either ported or explicitly parked before the boundary is deleted.
+- [ ] **The naive-timezone rule is settled** — naive = UTC (#560, 2026-07-21,
+      PR #610). Done bar merge.
+- [ ] **`arbin_sql_h5` (#609) merged**, so its `parse()` is on master.
+
+### 8.2 Phase A — close the `epoch_time_utc` gap (prerequisite)
+
+Today **no loader produces `epoch_time_utc`**: the derivation maps `datetime_txt`
+→ passthrough `date_time`, and `cellpycore.legacy.mapping` has *no*
+`datetime_txt → epoch_time_utc` entry (verified). That is why "missing required
+column epoch_time_utc" prints on every load. Until this closes, routing through
+`harmonize()` would ship raw frames missing a required schema column.
+
+- [ ] **Derive `epoch_time_utc` from the vendor datetime.** Either add
+      `datetime_txt → epoch_time_utc` to `cellpycore.legacy.mapping` (cleanest —
+      the derivation composes it automatically and `harmonize._convert_timestamps`
+      already converts datetime/epoch-seconds → int64 ns), or special-case it in
+      cellpy's `derive_column_maps`. Keep `date_time` **also** as a passthrough for
+      the one-release window (native-headers plan §L83).
+- [ ] **Each `parse()` yields a form `_convert_timestamps` accepts** (datetime,
+      epoch-seconds float, or int64 ns). Gaps: `arbin_res` stores an **Excel
+      serial** (`xldate_as_datetime` currently runs in `_post_process`) — move that
+      conversion into `parse()`; `arbin_sql_h5` uses `from_arbin_to_datetime` —
+      likewise. maccor/neware already parse to datetime.
+- [ ] **Tighten the oracle:** drop `date_time` from `KNOWN_REPRESENTATION_GAPS` and
+      assert `epoch_time_utc` value parity (legacy `date_time` datetime → epoch ns
+      == harmonized `epoch_time_utc`). This is the check that proves Phase A.
+
+### 8.3 Phase B — the flag day
+
+- [ ] **Route `load()` through `harmonize(parse(...))`** at the shared boundary,
+      replacing the `loader()` → `to_native()` path (cellreader.py 1368/1462/1721/
+      1733). One PR, all loaders.
+- [ ] **Multi-test files.** `harmonize()` stamps `test_id = 0`; arbin `.res` /
+      `arbin_sql` files with several `Test_ID`s need the real grouping key.
+      `loader()` splits them today (`_merge`, `increment_cycle_index`); the routed
+      path must reproduce per-test `LoaderResult`s (the contract already returns a
+      tuple). Single-test parity is proven; **multi-test is the untested corner** —
+      add a multi-test arbin fixture or explicitly scope it.
+- [ ] **Delete `to_native()`** and the `cellpy_file_translate` ingestion calls once
+      no loader needs them. (The cellpy-*file* boundary keeps its own translate for
+      v8 read/write — do not delete that.)
+
+### 8.4 Phase C — release gates (the acceptance bar, #574)
+
+- [ ] Parity oracle green on **every** shipping loader, `epoch_time_utc` included.
+- [ ] Golden suites green: `loader_{arbin_res,custom,maccor_txt,neware_txt,pec_csv}`
+      + `pipeline_smoke`.
+- [ ] End-to-end value-parity oracle on all golden cells (raw → step-table →
+      summary), exception list explicit and named (the §7 behavior-delta register).
+- [ ] **Benchmarks** (`benchmarks/test_performance.py` vs the captured v1.x
+      baselines): no metric slower; load + summary show the expected
+      bridge-removal win (#476 tiered gate). A regression here is a signal to
+      investigate before shipping, not after.
+- [ ] Full CI green — `essential (linux / uv)` **and** `full (linux / uv)`.
+- [ ] `DEPRECATIONS.md`: `date_time`-as-column registered for 2.1 removal; any
+      loader parked in §8.1 registered with its replacement.
+
+### 8.5 Risks specific to the flag day
+
+| Risk | Handling |
+|---|---|
+| A loader without `parse()` blocks deleting `to_native()` | §8.1 forces the port-or-park decision per loader first |
+| `epoch_time_utc` missing → invalid raw frames | Phase A is a hard prerequisite; the tightened oracle gates it |
+| Multi-test arbin `Test_ID` vs framework `test_id` | §8.3 — add a multi-test fixture or scope multi-test out with a typed error |
+| Benchmarks regress on the flip | Expected to *win* on load/summary; a loss triggers investigation, not a silent ship (#476) |
+| `date_time` consumers (plotting, exporters, merger) break when it later drops | Kept as passthrough for 2.0; 2.1 removal is a DEPRECATIONS.md item, not a flag-day one |
