@@ -594,20 +594,31 @@ Today **no loader produces `epoch_time_utc`**: the derivation maps `datetime_txt
 column epoch_time_utc" prints on every load. Until this closes, routing through
 `harmonize()` would ship raw frames missing a required schema column.
 
-- [ ] **Derive `epoch_time_utc` from the vendor datetime.** Either add
-      `datetime_txt → epoch_time_utc` to `cellpycore.legacy.mapping` (cleanest —
-      the derivation composes it automatically and `harmonize._convert_timestamps`
-      already converts datetime/epoch-seconds → int64 ns), or special-case it in
-      cellpy's `derive_column_maps`. Keep `date_time` **also** as a passthrough for
-      the one-release window (native-headers plan §L83).
-- [ ] **Each `parse()` yields a form `_convert_timestamps` accepts** (datetime,
-      epoch-seconds float, or int64 ns). Gaps: `arbin_res` stores an **Excel
-      serial** (`xldate_as_datetime` currently runs in `_post_process`) — move that
-      conversion into `parse()`; `arbin_sql_h5` uses `from_arbin_to_datetime` —
-      likewise. maccor/neware already parse to datetime.
-- [ ] **Tighten the oracle:** drop `date_time` from `KNOWN_REPRESENTATION_GAPS` and
-      assert `epoch_time_utc` value parity (legacy `date_time` datetime → epoch ns
-      == harmonized `epoch_time_utc`). This is the check that proves Phase A.
+- [x] **Derive `epoch_time_utc` from the vendor datetime** (PR, 2026-07-21). Done
+      cellpy-side rather than by petitioning core: a new
+      `LoaderDeclarations.datetime_kind` (`datetime`/`string`/`excel_serial`/
+      `epoch_seconds`) tells `harmonize()` how the `date_time` passthrough is
+      encoded; it parses that to a real `Datetime` and copies it into
+      `epoch_time_utc`, which the existing `_convert_timestamps` turns into int64
+      ns UTC (so the naive=UTC rule lives in one place). `date_time` is kept as
+      the parsed datetime for the one-release window. The config derivation sets
+      `datetime_kind="string"` automatically from `convert_date_time_to_datetime`;
+      pec/arbin_res set theirs by hand.
+- [x] **Each `parse()` yields a convertible form** — handled by the `datetime_kind`
+      dispatch instead of moving conversions into each `parse()`. Excel serial is
+      reproduced element-wise (`datetime(1899,12,30)+timedelta(days=s)`, the exact
+      legacy `xldate`), because a vectorised `round(serial*…)` disagreed with
+      `timedelta`'s microsecond rounding by 1 µs on ~half the rows.
+- [x] **Tighten the oracle** — `date_time` un-excused (now a real datetime that
+      matches), plus an explicit `epoch_time_utc == legacy date_time as epoch ns`
+      assertion (it is not a *shared* column). **Exact (0 ns) parity proven for
+      neware, maccor, pec, arbin_res.** `custom` is skipped from the exact check
+      (its fixture's `date_stamp` is an Excel serial the legacy path misreads as
+      nanoseconds → a degenerate 1970 timestamp; both paths agree only to ~376 ns
+      of float noise — a synthetic-fixture artifact).
+- [ ] **Remaining for Phase A:** `arbin_sql_h5` gets `datetime_kind` on its own
+      branch; the four fixture-less arbin_sql variants + `biologics_mpr` /
+      `neware_nda` acquire it as they are ported or parked (§8.1).
 
 ### 8.3 Phase B — the flag day
 
