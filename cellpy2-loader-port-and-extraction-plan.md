@@ -182,6 +182,32 @@ section only fixes the ground it stands on.
   in 2.1 unless users object.
 - **`biologics_mpr`, `batmo_bdf` — port** (decision stands); executes with
   the tier-1/2 arc.
+
+### 2.6b `arbin_res` two-stage (2026-07-21)
+
+The tier-1 loader flagged as the awkward one (Access `.res` via ODBC on
+Windows, mdbtools on posix). Two facts settled the scope:
+
+- **CI can check it.** The arbin golden runs green on Linux CI — mdbtools is
+  installed there — so the parity case runs in CI, not only locally. The
+  parity test still skips gracefully where no backend exists, mirroring the
+  golden's `skip_reason`.
+- **The vendor stage is thin.** `get_headers_normal()` is already a
+  `{cellpy attr → Arbin column}` map, the same shape the configuration loaders
+  carry, so `declarations()` reuses `derive_column_maps` — Arbin gets the
+  provenance rule (`Test_ID` dropped, not mapped onto the framework `test_id`)
+  for free. `parse()` is just the database read, stopping before the rename and
+  the Excel-serial datetime conversion, which `harmonize()` now owns. It shares
+  the read path with `loader()` (calls `_loader_win`/`_loader_posix`), so the
+  two cannot drift.
+
+Scoped to a single test: the golden fixture is single-test with no aux columns,
+and `loader()` still handles the multi-test split and aux joins. Multi-test
+`.res` — where `Test_ID` is nonzero and `harmonize()`'s framework `test_id`
+would differ from the vendor value — is the switchover's concern, not the
+vendor stage's. Value parity holds on all 17 shared measurement columns
+(capacities, energies, potential, current, cycle, step, times); only `date_time`
+is excused, as everywhere.
 - **`local_instrument` — confirmed** as one of the two sanctioned warn-only
   escape hatches (conventions plan §4); no change.
 
