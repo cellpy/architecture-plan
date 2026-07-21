@@ -211,6 +211,42 @@ is excused, as everywhere.
 - **`local_instrument` — confirmed** as one of the two sanctioned warn-only
   escape hatches (conventions plan §4); no change.
 
+### 2.6c Tier-2 `arbin_sql` family — only `arbin_sql_h5` is verifiable (2026-07-21)
+
+The tier-2 arbin_sql loaders (`arbin_sql`, `arbin_sql_7`, `arbin_sql_csv`,
+`arbin_sql_xlsx`, `arbin_sql_h5`) share one shape: `BaseLoader` with a
+module-level `normal_headers_renaming_dict`, so `declarations()` reuses
+`derive_column_maps` exactly as `arbin_res` does. But **only `arbin_sql_h5` has
+an in-repo fixture** — the other four read a live SQL Server or export formats
+with no committed sample, so their declarations cannot be verified by the parity
+oracle at all. Porting them blind would ship unverified column maps — the
+failure mode this arc exists to prevent — so they are **left for the
+switchover** (routed through `harmonize(declarations())` there, verified against
+whatever real data exists then, or flagged unverified).
+
+`arbin_sql_h5` is ported and CI-checked. Two facts about it:
+
+- **`drop_duplicates` is a no-op on the fixture** (47 → 47), but it is genuine
+  vendor cleanup (the export repeats rows), so `parse()` keeps it.
+- **Internal resistance is measured sparsely** (35 of 47 rows null in the
+  fixture) and forward-filled. Not declarative, so it is a declared post hook —
+  the new reusable `hooks.forward_fill`. Removing the hook fails the parity case
+  on `internal_resistance` (different null positions), so the check bites.
+
+**Bug found, not fixed here.** The legacy `_post_process` runs a
+`backward_fill_ir` step that calls `ffill` a second time instead of `bfill` (its
+debug log even says "forward filling ir"), so the intended backward fill never
+happens and leading nulls stay null. The port reproduces the *actual* behaviour
+(forward-fill only) — its contract is no change to users' numbers — and the bug
+is filed separately; fixing it would be a lock-step change to the port plus a
+release note.
+
+Also generalised here: the parity oracle loads its reference with
+`auto_summary=False`, comparing the **loader** stage on both sides. Most loaders
+are unaffected, but `arbin_sql_h5`'s `make_summary` prunes duplicate raw rows as
+a documented side effect (47 → 34, issue #385, value-identical), and a
+loader-stage frame must be compared against a loader-stage frame.
+
 ### 2.6a `pec_csv` two-stage decisions (2026-07-20, maintainer)
 
 `pec_csv` is not configuration-driven, so its declarations cannot be *derived*
